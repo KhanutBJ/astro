@@ -42,7 +42,6 @@
 ### Prerequisites
 
 - Node.js 18+
-- A [Google AI Studio](https://aistudio.google.com) API key
 
 ### Installation
 
@@ -61,24 +60,6 @@ cp .env.example .env.local
 # 4. Start development server
 npm run dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## ⚙️ Environment Variables
-
-Create a `.env.local` file at the project root:
-
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `GEMINI_API_KEY` | ✅ Yes | Google AI Studio API key for อาจารย์ดาว AI chat |
-
-Get your key at [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) — free tier available.
 
 ---
 
@@ -144,39 +125,6 @@ In the **ฤกษ์** tab:
 The **คู่ดวง** tab offers:
 - **ซินาสตรี (Synastry)** — full inter-chart aspect analysis with two birth dates
 - **ดวงคู่ใจ** — quick compatibility quiz
-
----
-
-## 🌐 Deployment
-
-### Deploy to Vercel (Recommended)
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_USERNAME/dawtamnai&env=GEMINI_API_KEY&envDescription=Google%20AI%20Studio%20API%20key%20for%20Gemini)
-
-1. Click the button above
-2. Add `GEMINI_API_KEY` in Vercel environment variables
-3. Deploy!
-
-### Manual Deploy
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy to production
-vercel --prod
-```
-
----
-
-## 🧪 Development Scripts
-
-```bash
-npm run dev      # Start development server (http://localhost:3000)
-npm run build    # Production build
-npm run start    # Run production build locally
-npm run lint     # ESLint check
-```
 
 ---
 
