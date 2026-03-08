@@ -1,11 +1,14 @@
 /**
  * thaiAstroEngine.ts
- * Pure-TypeScript Thai astrology calculator (replaces Python/Swiss Ephemeris subprocess).
+ * Pure-TypeScript Thai astrology calculator.
  * Uses astronomy-engine for planetary positions (no native bindings → Vercel compatible).
- * Implements Lahiri sidereal mode, อันโตนาทีสามัญ lagna, ทักษา, dignities, aspects.
+ * Lahiri sidereal | True astronomical Ascendant via SiderealTime | Retrograde detection.
  */
 
-import { Body, GeoVector, Ecliptic, EclipticGeoMoon } from "astronomy-engine";
+import { Body, GeoVector, Ecliptic, EclipticGeoMoon, SiderealTime } from "astronomy-engine";
+
+const DEG2RAD = Math.PI / 180;
+const RAD2DEG = 180 / Math.PI;
 
 // ─── Reference data ──────────────────────────────────────────────────────────
 
@@ -104,20 +107,43 @@ function meanLunarNode(utcDate: Date): number {
   return omega;
 }
 
-// ─── Timezone offset → UTC date ──────────────────────────────────────────────
+// ─── Timezone offset → UTC date (DST-aware) ──────────────────────────────────
+// Uses Intl.DateTimeFormat to correctly handle Daylight Saving Time.
+// A static table was previously used, which gave wrong offsets for London, Paris,
+// New York, LA etc. in summer (BST/CEST/EDT/PDT), causing up to 1-hour errors
+// that could shift the Lagna by an entire sign.
 function toUTC(year: number, month: number, day: number, hour: number, minute: number, tz: string): Date {
-  // For Thailand (Asia/Bangkok = UTC+7), other common offsets supported
-  const tzOffsets: Record<string, number> = {
-    "Asia/Bangkok":    7,  "Asia/Colombo":     5.5, "Asia/Kolkata":     5.5,
-    "Asia/Karachi":    5,  "Asia/Dubai":       4,   "Asia/Tehran":      3.5,
-    "Asia/Riyadh":     3,  "Europe/Istanbul":  3,   "Europe/Moscow":    3,
-    "Europe/Paris":    1,  "Europe/London":    0,   "America/New_York": -5,
-    "America/Chicago": -6, "America/Denver":   -7,  "America/Los_Angeles": -8,
-    "Asia/Tokyo":      9,  "Asia/Seoul":       9,   "Australia/Sydney": 10,
-  };
-  const offsetH = tzOffsets[tz] ?? 7;
-  const utcMs = Date.UTC(year, month - 1, day, hour, minute) - offsetH * 3600 * 1000;
-  return new Date(utcMs);
+  // Treat the input as UTC to create a candidate timestamp
+  const candidate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  try {
+    // Ask Intl: "when UTC is `candidate`, what is the wall-clock time in `tz`?"
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      year: "numeric", month: "numeric", day: "numeric",
+      hour: "numeric", minute: "numeric", hour12: false,
+    });
+    const parts = Object.fromEntries(fmt.formatToParts(candidate).map(p => [p.type, p.value]));
+    const tzYear   = parseInt(parts.year);
+    const tzMonth  = parseInt(parts.month);
+    const tzDay    = parseInt(parts.day);
+    const tzHour   = parseInt(parts.hour)   % 24; // midnight may be returned as "24"
+    const tzMinute = parseInt(parts.minute);
+    // Express that local time as a UTC-number so we can compute the offset
+    const localAsUtc = new Date(Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute));
+    // offsetMs = how many ms to add to a "local-treated-as-UTC" value to get real UTC
+    const offsetMs = candidate.getTime() - localAsUtc.getTime();
+    return new Date(candidate.getTime() + offsetMs);
+  } catch {
+    // Fallback for any unrecognised timezone string (static offsets, no DST)
+    const fallback: Record<string, number> = {
+      "Asia/Bangkok": 7, "Asia/Kolkata": 5.5, "Asia/Karachi": 5,
+      "Asia/Dubai": 4,   "Asia/Tehran": 3.5,  "Asia/Riyadh": 3,
+      "Europe/Moscow": 3,"Asia/Tokyo": 9,      "Asia/Seoul": 9,
+      "Australia/Sydney": 10, "UTC": 0,
+    };
+    const offsetH = fallback[tz] ?? 7;
+    return new Date(candidate.getTime() - offsetH * 3_600_000);
+  }
 }
 
 // ─── Planet sidereal longitude ────────────────────────────────────────────────
@@ -189,53 +215,58 @@ function getTaksa(dowKey: string): Record<string,string> {
   return out;
 }
 
-// ─── Lagna (อันโตนาทีสามัญ) ─────────────────────────────────────────────────
-function calcLagna(
-  year: number, month: number, day: number,
-  hour: number, minute: number, tz: string,
-  sunLon: number   // sidereal Sun longitude for birth time
-): { absLon: number; signIdx: number } {
-  // Find sunrise UTC by approximating it as 06:20 (winter) or 06:00 (other months)
-  const isWinter = month === 11 || month === 12 || month === 1;
-  const srH = 6, srM = isWinter ? 20 : 0;
+// ─── True Astronomical Ascendant (Lagna) ────────────────────────────────────
+// Method: GAST (astronomy-engine SiderealTime) → Local Sidereal Time → RAMC
+//         → ecliptic longitude on eastern horizon via spherical trig.
+// Accurate for ANY latitude/longitude. Replaces the อันโตนาที anto-table
+// approximation (which had up to 20 min/sign error for Bangkok itself, and
+// was completely wrong for non-Bangkok locations).
+function calcLagna(utcDate: Date, lat: number, lonCoord: number): { absLon: number; signIdx: number } {
+  // 1. Greenwich Apparent Sidereal Time (hours, 0–24)
+  const gast = SiderealTime(utcDate);
 
-  // If birth is before 06:00, use previous day's sunrise
-  let srDay = day, srMonth = month, srYear = year;
-  if (hour < 6) {
-    const prev = new Date(Date.UTC(year, month - 1, day) - 86400000);
-    srYear = prev.getUTCFullYear();
-    srMonth = prev.getUTCMonth() + 1;
-    srDay = prev.getUTCDate();
-  }
-  const sunriseUTC = toUTC(srYear, srMonth, srDay, srH, srM, tz);
-  const sunAtSunrise = getPlanetSiderealLon("๑.อาทิตย์", sunriseUTC, 0);
-  const sunSign = Math.floor(sunAtSunrise / 30);
-  const degInSign = sunAtSunrise % 30;
+  // 2. Right Ascension of Midheaven (RAMC) in degrees
+  const ramc = ((gast + lonCoord / 15) % 24 + 24) % 24 * 15;
 
-  // อันโตนาที durations per sign (minutes per sign)
-  const anto = [116, 122, 132, 132, 122, 116, 116, 122, 132, 132, 122, 116];
+  // 3. Obliquity of ecliptic — IAU 1980 series
+  const T = (dateToJD(utcDate) - 2451545.0) / 36525.0;
+  const eps = 23.439291111 - 0.013004167 * T - 0.0001638889 * T * T + 0.000000503611 * T * T * T;
 
-  const birthMins = hour * 60 + minute;
-  const srMins = srH * 60 + srM;
-  const elapsed = ((birthMins - srMins) % 1440 + 1440) % 1440;
+  // 4. Ascendant tropical ecliptic longitude (standard spherical formula, Meeus ch.14)
+  const rc = ramc * DEG2RAD, re = eps * DEG2RAD, rl = lat * DEG2RAD;
+  const y = -Math.cos(rc);
+  const x = Math.sin(re) * Math.tan(rl) + Math.cos(re) * Math.sin(rc);
+  let ascTrop = Math.atan2(y, x) * RAD2DEG;
+  ascTrop = ((ascTrop % 360) + 360) % 360;
 
-  const timeRem = ((30 - degInSign) / 30) * anto[sunSign];
-  let cur = sunSign;
-  let lagnaAbsDeg: number;
-
-  if (elapsed <= timeRem) {
-    lagnaAbsDeg = sunSign * 30 + degInSign + (elapsed / anto[cur]) * 30;
-  } else {
-    let rem = elapsed - timeRem;
-    cur = (cur + 1) % 12;
-    while (rem > anto[cur]) {
-      rem -= anto[cur];
-      cur = (cur + 1) % 12;
-    }
-    lagnaAbsDeg = cur * 30 + (rem / anto[cur]) * 30;
+  // 5. Quadrant: atan2 may return Descendant instead of Ascendant.
+  //    Ascendant is always within 90° of the RAMC + 90° direction.
+  const easternMid = ((ramc + 90) % 360 + 360) % 360;
+  if (Math.abs(((ascTrop - easternMid + 540) % 360) - 180) > 90) {
+    ascTrop = (ascTrop + 180) % 360;
   }
 
-  return { absLon: lagnaAbsDeg % 360, signIdx: Math.floor((lagnaAbsDeg % 360) / 30) };
+  // 6. Tropical → Lahiri sidereal
+  const ascSid = ((ascTrop - lahiriAyanamsa(utcDate)) % 360 + 360) % 360;
+  return { absLon: ascSid, signIdx: Math.floor(ascSid / 30) };
+}
+
+// ─── Retrograde detection ─────────────────────────────────────────────────────
+// Compares geocentric ecliptic longitude at t±12h to determine direction.
+// Rahu/Ketu: always retrograde. Sun/Moon: never retrograde.
+function getRetrograde(pKey: string, utcDate: Date): boolean {
+  const body = PLANET_BODY[pKey];
+  if (body === "rahu" || body === "ketu") return true;   // always retrograde by definition
+  if (body === "moon" || body === Body.Sun) return false; // never retrograde
+  const dt = 12 * 3600 * 1000; // 12 hours in ms
+  const d1 = new Date(utcDate.getTime() - dt);
+  const d2 = new Date(utcDate.getTime() + dt);
+  const lon1 = Ecliptic(GeoVector(body as Body, d1, true)).elon;
+  const lon2 = Ecliptic(GeoVector(body as Body, d2, true)).elon;
+  let diff = lon2 - lon1;
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+  return diff < 0;
 }
 
 // ─── Main Chart Generator ─────────────────────────────────────────────────────
@@ -267,9 +298,8 @@ export function generateChart(inp: ChartInput) {
     siderealLons[pKey] = getPlanetSiderealLon(pKey, utcDate, rahuTropLon);
   }
 
-  // Lagna
-  const sunSidLon = siderealLons["๑.อาทิตย์"];
-  const lagnaCalc = calcLagna(year, month, day, hour, minute, tz, sunSidLon);
+  // True astronomical Ascendant (Lagna) — precise for any lat/lon
+  const lagnaCalc = calcLagna(utcDate, lat, lon);
   const ascSign = lagnaCalc.signIdx;
 
   // Build raw planet data
@@ -277,7 +307,7 @@ export function generateChart(inp: ChartInput) {
     raw_lon: number; sign: string; sign_idx: number; pos: string;
     house: string; house_idx: number;
     treyang_s: string; nawang_s: string; nakshatra: string;
-    taksa_r: string; std: string;
+    taksa_r: string; std: string; retro: boolean;
   };
   const rawData: Record<string, PlanetRaw> = {};
   const signIndices: Record<string, number> = {};
@@ -301,6 +331,7 @@ export function generateChart(inp: ChartInput) {
       nakshatra: nakshatraLabel(lon_deg),
       taksa_r:   taksa[pKey] ?? "-",
       std:       getStandard(pKey, ZODIAC_FULL[sIdx]),
+      retro:     getRetrograde(pKey, utcDate),
     };
   }
 
@@ -350,6 +381,7 @@ export function generateChart(inp: ChartInput) {
       std_color: stdInfo.color,
       std_en: stdInfo.en,
       aspects: { Kum: a.Kum, Leng: a.Leng, Yoke: a.Yoke, Chak: a.Chak, Trikon: a.Trikon },
+      retro: d.retro,
     };
   });
 

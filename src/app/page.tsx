@@ -452,7 +452,7 @@ function CompatibilityTab({ onReadingRequest }: { onReadingRequest: (msg: string
 // ─── Main Page ────────────────────────────────────────────────
 export default function AstrologyChatPage() {
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "สวัสดีค่ะ ✨ ฉันคืออาจารย์ดาว\n\nพร้อมทำนายดวงชะตาให้คุณแล้ว 🌙\nลองเลือกราศี หรือบอกวันเดือนปีเกิดมาเลยนะคะ จะได้แม่นยำยิ่งขึ้น ⭐" },
+    { role: "assistant", content: "สวัสดีค่ะ ✨ ฉันคืออาจารย์ดาว\n\nพร้อมทำนายดวงชะตาให้คุณแล้ว 🌙\nบอกชื่อและเพศ (ชาย/หญิง) ได้เลยนะคะ หรือจะบอกวันเดือนปีเกิดมาเลยก็ได้ค่ะ จะได้ดูดวงได้แม่นยำยิ่งขึ้น ⭐" },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
