@@ -1,6 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import BirthChartView, { type ChartData } from "../components/BirthChartView";
+
+const THAI_CITIES = [
+  { label: "กรุงเทพฯ",    lat: 13.7563,  lon: 100.5018 },
+  { label: "เชียงใหม่",   lat: 18.7883,  lon:  98.9853 },
+  { label: "ขอนแก่น",    lat: 16.4419,  lon: 102.8360 },
+  { label: "นครราชสีมา", lat: 14.9799,  lon: 102.0978 },
+  { label: "ภูเก็ต",     lat:  7.8804,  lon:  98.3923 },
+  { label: "หาดใหญ่",    lat:  7.0086,  lon: 100.4747 },
+  { label: "อุดรธานี",   lat: 17.4156,  lon: 102.7872 },
+  { label: "สงขลา",      lat:  7.1894,  lon: 100.5950 },
+];
 
 // ─── Types ───────────────────────────────────────────────────
 type Message = { role: "user" | "assistant"; content: string };
@@ -427,6 +439,10 @@ export default function AstrologyChatPage() {
   const [selectedZodiac, setSelectedZodiac] = useState<typeof ZODIAC_SIGNS[0] | null>(null);
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("");
+  const [birthCity, setBirthCity] = useState(0);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [chartError, setChartError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const today = new Date();
@@ -487,13 +503,31 @@ export default function AstrologyChatPage() {
     sendMessage(`ฉันเป็นราศี${z.thai} (${z.en} ${z.symbol}) ${z.emoji} ช่วยดูดวงโดยรวมให้หน่อยได้ไหมคะ?`);
   };
 
-  const handleBirthChart = () => {
+  const handleBirthChart = async () => {
     if (!birthDate) return;
     const d = new Date(birthDate);
-    const months = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
-    const msg = `ฉันเกิดวันที่ ${d.getDate()} ${months[d.getMonth()]} พ.ศ. ${d.getFullYear()+543}${birthTime ? ` เวลา ${birthTime} น.` : ""} ช่วยวิเคราะห์ดวงชาตาและนิสัยตามโหราศาสตร์ให้ละเอียดได้ไหมคะ?`;
-    setActiveTab("chat");
-    sendMessage(msg);
+    const [h, mn] = birthTime ? birthTime.split(":").map(Number) : [12, 0];
+    const city = THAI_CITIES[birthCity];
+    setChartLoading(true);
+    setChartError(null);
+    setChartData(null);
+    try {
+      const res = await fetch("/api/chart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(),
+          hour: h, minute: mn, lat: city.lat, lon: city.lon,
+        }),
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      setChartData(json as ChartData);
+    } catch (e: unknown) {
+      setChartError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
+    } finally {
+      setChartLoading(false);
+    }
   };
 
   const copyLast = () => {
@@ -632,41 +666,84 @@ export default function AstrologyChatPage() {
 
           {/* ── TAB: BIRTH ── */}
           {activeTab === "birth" && (
-            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-8">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
               <div className="max-w-lg mx-auto">
-                <div className="text-center mb-8">
-                  <div className="text-5xl mb-3 animate-[float_6s_ease-in-out_infinite]">✨</div>
-                  <h2 className="font-thai-serif text-2xl font-bold gold-text mb-1">ดูดวงชาตา</h2>
-                  <p className="text-white/40 text-sm font-thai-serif">กรอกวันเกิดเพื่อรับคำทำนายที่แม่นยำยิ่งขึ้น</p>
-                </div>
-                <div className="space-y-4 mb-6">
-                  <div>
-                    <label className="block text-white/40 text-[10px] font-mono uppercase tracking-widest mb-2">วันเดือนปีเกิด</label>
-                    <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white text-base sm:text-sm outline-none focus:border-amber-400/50 transition-all [color-scheme:dark]" />
-                  </div>
-                  <div>
-                    <label className="block text-white/40 text-[10px] font-mono uppercase tracking-widest mb-2">เวลาเกิด <span className="normal-case text-white/20">(ถ้าทราบ)</span></label>
-                    <input type="time" value={birthTime} onChange={e => setBirthTime(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white text-base sm:text-sm outline-none focus:border-amber-400/50 transition-all [color-scheme:dark]" />
-                  </div>
-                </div>
-                <button onClick={handleBirthChart} disabled={!birthDate || isLoading}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-thai-serif font-bold text-base shadow-xl shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40">
-                  {isLoading ? "กำลังดูดวง..." : "🔮 วิเคราะห์ดวงชาตา"}
-                </button>
-                <div className="mt-8">
-                  <p className="text-white/20 text-[10px] uppercase tracking-widest font-mono mb-3 text-center">หรือเลือกราศีของคุณ</p>
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                    {ZODIAC_SIGNS.map(z => (
-                      <button key={z.en} onClick={() => handleZodiacSelect(z)}
-                        className={`flex flex-col items-center gap-0.5 py-2.5 rounded-xl border transition-all ${selectedZodiac?.en === z.en ? "border-amber-400/60 bg-amber-400/10 scale-105" : "border-white/5 bg-white/[0.02] hover:border-white/15"}`}>
-                        <span className="text-xl leading-none">{z.symbol}</span>
-                        <span className="text-white/60 text-[10px] font-thai-serif">{z.thai}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+
+                {/* Input form */}
+                {!chartData && (
+                  <>
+                    <div className="text-center mb-6">
+                      <div className="text-4xl mb-2 animate-[float_6s_ease-in-out_infinite]">🪐</div>
+                      <h2 className="font-thai-serif text-2xl font-bold gold-text mb-1">ดวงชาตาแม่นยำ</h2>
+                      <p className="text-white/40 text-xs font-thai-serif">คำนวณด้วย Swiss Ephemeris · Lahiri Sidereal · อันโตนาทีสามัญ</p>
+                    </div>
+                    <div className="space-y-3 mb-5">
+                      <div>
+                        <label className="block text-white/40 text-[10px] font-mono uppercase tracking-widest mb-2">วันเดือนปีเกิด</label>
+                        <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white text-base sm:text-sm outline-none focus:border-amber-400/50 transition-all [color-scheme:dark]" />
+                      </div>
+                      <div>
+                        <label className="block text-white/40 text-[10px] font-mono uppercase tracking-widest mb-2">เวลาเกิด <span className="normal-case text-white/20">(ถ้าทราบ)</span></label>
+                        <input type="time" value={birthTime} onChange={e => setBirthTime(e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white text-base sm:text-sm outline-none focus:border-amber-400/50 transition-all [color-scheme:dark]" />
+                      </div>
+                      <div>
+                        <label className="block text-white/40 text-[10px] font-mono uppercase tracking-widest mb-2">สถานที่เกิด</label>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {THAI_CITIES.map((c, i) => (
+                            <button key={c.label} onClick={() => setBirthCity(i)}
+                              className={`py-2 px-1 rounded-xl border text-[11px] font-thai-serif transition-all ${birthCity === i ? "border-amber-400/60 bg-amber-400/10 text-amber-300" : "border-white/5 bg-white/[0.02] text-white/50 hover:border-white/15"}` }>
+                              {c.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {chartError && (
+                      <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4 mb-4">
+                        <p className="text-red-400 text-sm font-thai-serif">⚠️ {chartError}</p>
+                      </div>
+                    )}
+
+                    <button onClick={handleBirthChart} disabled={!birthDate || chartLoading}
+                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-thai-serif font-bold text-base shadow-xl shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 flex items-center justify-center gap-2">
+                      {chartLoading
+                        ? <><div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"/><span>กำลังคำนวณตำแหน่งดาว...</span></>
+                        : <><span>🪐</span><span>คำนวณดวงชาตาสวิสเซอร์ลันด์</span></>}
+                    </button>
+
+                    <div className="mt-6">
+                      <p className="text-white/20 text-[10px] uppercase tracking-widest font-mono mb-3 text-center">หรือเลือกราศีเพื่อดูดวงด่วน</p>
+                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                        {ZODIAC_SIGNS.map(z => (
+                          <button key={z.en} onClick={() => handleZodiacSelect(z)}
+                            className={`flex flex-col items-center gap-0.5 py-2.5 rounded-xl border transition-all ${selectedZodiac?.en === z.en ? "border-amber-400/60 bg-amber-400/10 scale-105" : "border-white/5 bg-white/[0.02] hover:border-white/15"}`}>
+                            <span className="text-xl leading-none">{z.symbol}</span>
+                            <span className="text-white/60 text-[10px] font-thai-serif">{z.thai}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Chart result */}
+                {chartData && (
+                  <>
+                    <button onClick={() => setChartData(null)}
+                      className="mb-4 flex items-center gap-2 text-white/30 hover:text-white/60 transition-colors text-sm font-thai-serif">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
+                      กลับไปกรอกข้อมูล
+                    </button>
+                    <BirthChartView
+                      data={chartData}
+                      onAskAI={(msg) => { setActiveTab("chat"); sendMessage(msg); }}
+                    />
+                  </>
+                )}
+
               </div>
             </div>
           )}

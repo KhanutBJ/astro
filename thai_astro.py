@@ -160,4 +160,4 @@ if __name__ == "__main__":
         y=2004, m=12, d=7, h=13, mn=21, 
         lat=13.7563, lon=100.5018, day_of_week="Tuesday"
     )
-    print(chart_df.to_string(index=False))
+    print(chart_df.to_string(index=False)) 
