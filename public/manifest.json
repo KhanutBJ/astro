@@ -1,0 +1,28 @@
+{
+  "name": "ดาวทำนาย — โหราศาสตร์ไทย AI",
+  "short_name": "ดาวทำนาย",
+  "description": "ดูดวงชาตา ดาชา ปัญจางค์ ฤกษ์มงคล และแชทกับอาจารย์ดาว AI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06000f",
+  "theme_color": "#06000f",
+  "orientation": "portrait",
+  "categories": ["lifestyle", "entertainment"],
+  "lang": "th",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/api/og?lagna=กรกฎ&sun=สิงห์&moon=กุมภ์&score=82",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ]
+}

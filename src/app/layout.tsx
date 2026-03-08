@@ -1,10 +1,60 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+const APP_URL = "https://astro-xi-three.vercel.app";
+const OG_IMAGE = `${APP_URL}/api/og?lagna=%E0%B8%81%E0%B8%A3%E0%B8%81%E0%B8%8E&sun=%E0%B8%AA%E0%B8%B4%E0%B8%87%E0%B8%AB%E0%B9%8C&moon=%E0%B8%81%E0%B8%B8%E0%B8%A1%E0%B8%A0%E0%B9%8C&score=82`;
+
 export const metadata: Metadata = {
-  title: "ดาวทำนาย — ที่ปรึกษาดวงดาวของคุณ",
-  description: "สอบถามดวงดาว โชคชะตา และคำทำนายที่แม่นยำด้วย AI โหราศาสตร์",
-  keywords: "โหราศาสตร์, ดวง, ดาว, ทำนาย, ราศี",
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: "ดาวทำนาย — โหราศาสตร์ไทย AI",
+    template: "%s · ดาวทำนาย",
+  },
+  description: "ดูดวงชาตาที่แม่นยำจากดาราศาสตร์จริง วิเคราะห์มหาดาชา ปัญจางค์ ฤกษ์มงคล และแชทกับอาจารย์ดาว AI โหราศาสตร์อินเดีย-ไทย",
+  keywords: "โหราศาสตร์, ดวง, ดาว, ทำนาย, ราศี, ลัคนา, ดาชา, ปัญจางค์, ฤกษ์, โหราศาสตร์อินเดีย, jyotish, vedic astrology, thai astrology, ดวงชาตา",
+  authors: [{ name: "ดาวทำนาย" }],
+  creator: "ดาวทำนาย",
+  publisher: "ดาวทำนาย",
+  applicationName: "ดาวทำนาย",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "ดาวทำนาย",
+  },
+  openGraph: {
+    type: "website",
+    locale: "th_TH",
+    url: APP_URL,
+    siteName: "ดาวทำนาย",
+    title: "ดาวทำนาย — โหราศาสตร์ไทย AI ✨",
+    description: "ดูดวงชาตาที่แม่นยำจากดาราศาสตร์จริง วิเคราะห์มหาดาชา ปัญจางค์ ฤกษ์มงคล · อาจารย์ดาว AI รอคุณอยู่",
+    images: [
+      {
+        url: OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: "ดาวทำนาย — โหราศาสตร์ไทย AI",
+        type: "image/png",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@dawtamnai",
+    creator: "@dawtamnai",
+    title: "ดาวทำนาย — โหราศาสตร์ไทย AI ✨",
+    description: "ดูดวงชาตาที่แม่นยำจากดาราศาสตร์จริง · มหาดาชา · ฤกษ์มงคล · อาจารย์ดาว AI",
+    images: [OG_IMAGE],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  alternates: {
+    canonical: APP_URL,
+  },
 };
 
 export const viewport: Viewport = {

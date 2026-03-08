@@ -942,6 +942,21 @@ export default function AstrologyChatPage() {
   // Panchang state
   const [panchangData, setPanchangData] = useState<PanchangData | null>(null);
   const [panchangLoading, setPanchangLoading] = useState(false);
+  // Streak counter
+  const [streak, setStreak] = useState(0);
+  useEffect(() => {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const raw = localStorage.getItem("daw_streak");
+      const data = raw ? JSON.parse(raw) : { streak: 0, lastDate: "" };
+      const last = data.lastDate ?? "";
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const newStreak = last === today ? data.streak : last === yesterday ? data.streak + 1 : 1;
+      localStorage.setItem("daw_streak", JSON.stringify({ streak: newStreak, lastDate: today }));
+      setStreak(newStreak);
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Synastry state
   const [synMode, setSynMode] = useState(false);
   const [synDateA, setSynDateA] = useState("");
@@ -1123,12 +1138,20 @@ export default function AstrologyChatPage() {
             ))}
           </div>
 
-          {/* Copy */}
-          <button onClick={copyLast}
-            className="flex-shrink-0 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/35 hover:text-white/80 hover:border-white/20 transition-all text-xs font-display flex items-center justify-center gap-1.5">
-            <span>{copied ? "✓" : "📋"}</span>
-            <span className="hidden sm:inline tracking-wide">{copied ? "คัดลอกแล้ว" : "คัดลอก"}</span>
-          </button>
+          {/* Streak + Copy */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {streak >= 2 && (
+              <div className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-orange-400/20 bg-orange-400/5">
+                <span className="text-sm">🔥</span>
+                <span className="text-orange-300/70 text-[11px] font-display">{streak} วัน</span>
+              </div>
+            )}
+            <button onClick={copyLast}
+              className="flex-shrink-0 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/35 hover:text-white/80 hover:border-white/20 transition-all text-xs font-display flex items-center justify-center gap-1.5">
+              <span>{copied ? "✓" : "📋"}</span>
+              <span className="hidden sm:inline tracking-wide">{copied ? "คัดลอกแล้ว" : "คัดลอก"}</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -1330,8 +1353,8 @@ export default function AstrologyChatPage() {
                         </div>
                       </div>
                       <ShareButton
-                        text={`✨ ดวงชาตาของฉัน\n🌟 ลัคนา: ${chartData.lagna.sign} ${chartData.lagna.sign_sym} · ${chartData.lagna.pos}\n☀️ อาทิตย์: ${chartData.planets.find(p=>p.en==="Sun")?.sign ?? ""}\n🌙 จันทร์: ${chartData.planets.find(p=>p.en==="Moon")?.sign ?? ""}\n♂️ อังคาร: ${chartData.planets.find(p=>p.en==="Mars")?.sign ?? ""}\n♃ พฤหัสบดี: ${chartData.planets.find(p=>p.en==="Jupiter")?.sign ?? ""}\n\n🔭 คำนวณด้วย Swiss Ephemeris · Lahiri Sidereal\n📅 วันเกิด: ${birthDate}\n\nดูดวงชาตาของคุณ →`}
-                        url={`${APP_URL}?d=${birthDate.replace(/-/g, "")}&t=${(birthTime || "12:00").replace(":", "")}&c=${birthCity}`}
+                        text={`✨ ดวงชาตาของฉัน\n🌟 ลัคนา: ${chartData.lagna.sign} ${chartData.lagna.sign_sym} · ${chartData.lagna.pos}\n☀️ อาทิตย์: ราศี${chartData.planets.find(p=>p.en==="Sun")?.sign ?? ""}\n🌙 จันทร์: ราศี${chartData.planets.find(p=>p.en==="Moon")?.sign ?? ""}\n\n🔭 คำนวณด้วยดาราศาสตร์จริง · Lahiri Sidereal\n\nดูดวงชาตาของคุณ →`}
+                        url={`${APP_URL}/share?lagna=${encodeURIComponent(chartData.lagna.sign)}&sun=${encodeURIComponent(chartData.planets.find(p=>p.en==="Sun")?.sign??"")}&moon=${encodeURIComponent(chartData.planets.find(p=>p.en==="Moon")?.sign??"")}&mars=${encodeURIComponent(chartData.planets.find(p=>p.en==="Mars")?.sign??"")}&jup=${encodeURIComponent(chartData.planets.find(p=>p.en==="Jupiter")?.sign??"")}&score=${Math.round(chartData.avg_strength??75)}&date=${birthDate}&d=${birthDate.replace(/-/g,"")}&t=${(birthTime||"12:00").replace(":","")}&c=${encodeURIComponent(birthCity)}`}
                         label="แชร์ดวงชาตานี้ ↗"
                         icon="🪐"
                         className="w-full justify-center py-3"
