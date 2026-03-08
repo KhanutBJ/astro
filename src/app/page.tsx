@@ -55,15 +55,111 @@ const TAROT_CARDS = [
 ];
 
 const QUICK_PROMPTS = [
-  { label: "💼 งาน", text: "ดวงการงานเดือนนี้เป็นอย่างไร?" },
-  { label: "❤️ ความรัก", text: "ดวงความรักช่วงนี้เป็นอย่างไร?" },
-  { label: "💰 เงิน", text: "ดวงการเงินปีนี้เป็นอย่างไร?" },
-  { label: "🌙 สีมงคล", text: "สีมงคลและวันดีสำหรับฉัน" },
-  { label: "⭐ วันนี้", text: "วันนี้เหมาะกับอะไร?" },
-  { label: "🔮 ดวงรวม", text: "ขอดูดวงรวมประจำปีนี้" },
-  { label: "🎓 การเรียน", text: "ดวงการเรียนช่วงนี้เป็นยังไง?" },
-  { label: "👯 เพื่อน", text: "ดวงมิตรภาพและสังคมของฉัน" },
+  { label: "� เงินมาไหม?",  text: "ดวงการเงินช่วงนี้ดีไหม? บอกตรงๆ เลยนะ" },
+  { label: "💔 รักยากไหม?", text: "ดวงความรักช่วงนี้เป็นยังไง? มีหวังไหม?" },
+  { label: "💼 ลุยหรือรอ?", text: "ดวงการงานเดือนนี้ ควรลุยหรือรอก่อนดี?" },
+  { label: "🔥 roast ดวง", text: "ช่วยวิเคราะห์ดวงของฉันแบบตรงๆ เกรียนๆ ได้เลย ไม่ต้องเกรงใจ" },
+  { label: "⭐ วันนี้ OK?",  text: "วันนี้ดวงดีไหม? ควรทำอะไรดีที่สุด?" },
+  { label: "🎱 ถามดวง",    text: "ถามดวงว่าสิ่งที่ฉันกังวลอยู่จะออกมาดีไหม?" },
+  { label: "🌙 ฤกษ์ดี",    text: "สัปดาห์นี้วันไหนฤกษ์ดีที่สุดสำหรับฉัน?" },
+  { label: "🔮 ดวงปี",     text: "ดวงปีนี้ของฉัน — highlight และ lowlight คืออะไร?" },
 ];
+
+// ─── Star Personality Types ───────────────────────────────────
+const STAR_TYPES = [
+  { id:0, title:"ดาวแห่งพลังงาน",    emoji:"🔥", color:"#ef4444",
+    desc:"ไฟแรง ทำอะไรทำเต็มที่ ชีวิตต้องอยู่ระดับ frontline เสมอ",
+    share:"ฉันคือ 🔥 ดาวแห่งพลังงาน — ชีวิตสั้นเกินจะใช้งานๆ" },
+  { id:1, title:"ดาวแห่งความรัก",    emoji:"💜", color:"#a855f7",
+    desc:"หัวใจใหญ่ รักคนรอบข้าง เชื่อในกรรมและการเชื่อมต่อของจิตวิญญาณ",
+    share:"ฉันคือ 💜 ดาวแห่งความรัก — เกิดมาเพื่อรักและได้รับความรัก" },
+  { id:2, title:"ดาวแห่งปัญญา",      emoji:"🧠", color:"#3b82f6",
+    desc:"คิดเยอะ วิเคราะห์เก่ง มีมุมมองที่คนอื่นมองข้ามเสมอ",
+    share:"ฉันคือ 🧠 ดาวแห่งปัญญา — สมองไว ดวงดีด้านความคิด" },
+  { id:3, title:"ดาวแห่งโชค",        emoji:"✨", color:"#f59e0b",
+    desc:"โชคดีแบบไม่รู้ตัว มักได้สิ่งดีๆ โดยไม่ต้องพยายามมากนัก",
+    share:"ฉันคือ ✨ ดาวแห่งโชค — ดวงดีขั้น legendary ดาวยืนยัน" },
+  { id:4, title:"ดาวแห่งความสำเร็จ", emoji:"🌟", color:"#eab308",
+    desc:"เกิดมาเพื่อประสบความสำเร็จ มีแรงขับสูง ต้องเป็นที่ 1",
+    share:"ฉันคือ 🌟 ดาวแห่งความสำเร็จ — เกิดมาเพื่อ win เท่านั้น" },
+  { id:5, title:"ดาวแห่งความลึก",    emoji:"🌊", color:"#06b6d4",
+    desc:"อารมณ์ลึก ละเอียดอ่อน รู้สึกสิ่งต่างๆ ได้มากกว่าคนอื่น",
+    share:"ฉันคือ 🌊 ดาวแห่งความลึก — mysterious และซับซ้อนกว่าที่เห็น" },
+  { id:6, title:"ดาวแห่งสร้างสรรค์", emoji:"🎨", color:"#ec4899",
+    desc:"จินตนาการพุ่ง สร้างสรรค์ไม่มีวัน มองโลกด้วยสายตา artist",
+    share:"ฉันคือ 🎨 ดาวแห่งสร้างสรรค์ — จินตนาการสูงสุด สาย creative" },
+];
+
+const QUIZ_Q = [
+  { q: "ตอนเครียดสุดๆ คุณมักจะ...",
+    opts: [
+      { label:"💪 ระเบิดออกเป็นพลังงาน — ออกกำลังกาย/เดินทาง", t:0 },
+      { label:"📞 โทรหาคนที่รัก ต้องการใครสักคน",               t:1 },
+      { label:"🔍 นั่งวิเคราะห์หาทางออกอยู่คนเดียว",             t:2 },
+      { label:"🎨 ทำงานสร้างสรรค์หรือฟังเพลงคนเดียว",           t:6 },
+    ] },
+  { q: "ในชีวิต คุณอยากได้อะไรมากที่สุด?",
+    opts: [
+      { label:"🏆 ชัยชนะ ความสำเร็จ เป็นที่ 1",            t:4 },
+      { label:"💜 ความรักที่ลึกซึ้งและสัมพันธ์ที่ดี",        t:1 },
+      { label:"✨ โชคดีไหลมา ไม่ต้องพยายามมาก",             t:3 },
+      { label:"🌊 ความเข้าใจตัวเองอย่างลึกซึ้ง",            t:5 },
+    ] },
+  { q: "เพื่อนๆ มักบอกว่าคุณเป็น...",
+    opts: [
+      { label:"⚡ คน energetic ทำอะไรก็ทำเต็มที่",          t:0 },
+      { label:"🍀 คนที่โชคดีเสมอ เรื่องดีมาหาเอง",         t:3 },
+      { label:"💡 คนฉลาด มองเห็นในสิ่งที่คนอื่นไม่เห็น",   t:2 },
+      { label:"🔮 คนลึกลับ อ่านยาก มีอะไรซ่อนอยู่เสมอ",  t:5 },
+    ] },
+];
+
+const DAILY_HOOKS = [
+  "สิ่งที่รอมานานกำลังมาถึงในรูปแบบที่ไม่คาดคิด 🌙",
+  "ดาวเสาร์ส่งสัญญาณ: หยุดรีรอแล้วลงมือซักที ⚡",
+  "ดวงจันทร์บอกว่าเดือนนี้พาความชัดเจนมาให้ ✨",
+  "คนที่คิดถึงอยู่กำลังคิดถึงคุณเหมือนกัน — ดาวยืนยัน 💜",
+  "โอกาสใหม่มาในคราบของ 'ความบังเอิญ' ระวังไว้ 🔮",
+  "เดือนนี้เงินมา แต่ต้องรู้จักรับให้เป็นด้วยนะ 💰",
+  "ความรักที่แท้ไม่เคยหายไป มันแค่รอเวลาที่ใช่ 🌹",
+  "ดาวอังคารบอกว่าถึงเวลา fight back แล้วค่ะ 🔥",
+  "สิ่งที่คิดว่าพังแล้ว อาจกำลัง rebuild อยู่ในเงามืด 🌑",
+  "ฤกษ์นี้เหมาะมากสำหรับการเริ่มต้นใหม่ ⭐",
+  "พลังงานในอากาศดีผิดปกติวันนี้ — จับไว้ ✨",
+  "ดวงดาวพร้อมเสมอ คำถามคือคุณพร้อมไหม? 🪐",
+];
+
+// ─── Share utilities ──────────────────────────────────────────
+const APP_URL = "https://astro-xi-three.vercel.app";
+
+function ShareButton({
+  text, url = APP_URL, label = "แชร์", icon = "↗", className = "",
+}: { text: string; url?: string; label?: string; icon?: string; className?: string }) {
+  const [done, setDone] = useState(false);
+  const handle = async () => {
+    if (done) return;
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try { await navigator.share({ title: "ดาวทำนาย ✨", text, url }); } catch {}
+    } else {
+      try { await navigator.clipboard.writeText(text + "\n\n🔗 " + url); } catch {}
+    }
+    setDone(true);
+    setTimeout(() => setDone(false), 2500);
+  };
+  return (
+    <button
+      onClick={handle}
+      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-thai-serif transition-all active:scale-95 ${
+        done
+          ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-300"
+          : "border-amber-400/20 bg-amber-400/5 text-amber-300/70 hover:border-amber-400/50 hover:text-amber-300 hover:bg-amber-400/10"
+      } ${className}`}
+    >
+      <span>{done ? "✓" : icon}</span>
+      <span>{done ? "แชร์แล้ว! ✨" : label}</span>
+    </button>
+  );
+}
 
 // Stable deterministic stars
 const STARS = Array.from({ length: 80 }, (_, i) => {
@@ -212,9 +308,94 @@ function MessageBubble({ message }: { message: Message }) {
         {isUser ? (
           <p className="font-thai-serif text-sm text-white/90 leading-relaxed whitespace-pre-wrap">{message.content}</p>
         ) : (
-          <MarkdownRenderer content={message.content} />
+          <>
+            <MarkdownRenderer content={message.content} />
+            <div className="mt-2.5 flex justify-end">
+              <ShareButton
+                text={message.content}
+                icon="↗"
+                label="แชร์คำทำนาย"
+              />
+            </div>
+          </>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── Personality Star Type Quiz ─────────────────────────────
+function DailyPersonalityQuiz() {
+  const [answers, setAnswers] = useState<number[]>([]);
+  const [result, setResult] = useState<number | null>(null);
+  const [shared, setShared] = useState(false);
+  const qIdx = answers.length;
+  const currentQ = QUIZ_Q[qIdx];
+  const resultType = result !== null ? STAR_TYPES[result] : null;
+
+  const pick = (typeIdx: number) => {
+    const next = [...answers, typeIdx];
+    if (next.length === QUIZ_Q.length) {
+      const counts = new Array(7).fill(0);
+      next.forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+      setResult(counts.indexOf(Math.max(...counts)));
+    }
+    setAnswers(next);
+  };
+
+  const reset = () => { setAnswers([]); setResult(null); setShared(false); };
+
+  const handleShare = async () => {
+    if (!resultType || shared) return;
+    const text = `${resultType.share}\n\n🔮 ค้นพบประเภทดาวของคุณที่ → https://astro-xi-three.vercel.app`;
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try { await navigator.share({ title: "ดาวทำนาย ✨", text, url: "https://astro-xi-three.vercel.app" }); } catch {}
+    } else {
+      try { await navigator.clipboard.writeText(text); } catch {}
+    }
+    setShared(true);
+    setTimeout(() => setShared(false), 2500);
+  };
+
+  return (
+    <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-900/10 to-purple-950/20 p-5">
+      <p className="text-violet-400/50 text-[10px] uppercase tracking-widest font-mono mb-3">🔮 ค้นพบประเภทดาวของคุณ</p>
+      {!resultType ? (
+        <>
+          <p className="font-thai-serif text-white/80 text-sm font-semibold mb-1">{currentQ?.q}</p>
+          <p className="text-white/25 text-[10px] font-mono mb-3">ข้อ {qIdx + 1} / {QUIZ_Q.length}</p>
+          <div className="flex flex-col gap-2">
+            {currentQ?.opts.map((opt, i) => (
+              <button
+                key={i}
+                onClick={() => pick(opt.t)}
+                className="text-left px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:border-violet-400/40 hover:bg-violet-400/5 transition-all font-thai-serif text-sm text-white/70 active:scale-[0.98]"
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="text-center">
+          <p className="text-white/30 text-[10px] font-mono mb-2">✨ ประเภทดาวของคุณคือ</p>
+          <div className="text-6xl mb-3">{resultType.emoji}</div>
+          <p className="font-thai-serif font-bold text-xl mb-1" style={{ color: resultType.color }}>{resultType.title}</p>
+          <p className="text-white/50 text-sm font-thai-serif leading-relaxed mb-5 px-2">{resultType.desc}</p>
+          <div className="flex flex-col gap-2.5">
+            <button
+              onClick={handleShare}
+              className="w-full py-3 rounded-xl font-thai-serif text-sm font-semibold transition-all active:scale-[0.98] border"
+              style={{ borderColor: resultType.color + "70", background: resultType.color + "18", color: resultType.color }}
+            >
+              {shared ? "✓ คัดลอกแล้ว! ✨" : `${resultType.emoji} แชร์ประเภทดาวของฉัน`}
+            </button>
+            <button onClick={reset} className="text-white/25 text-xs font-thai-serif hover:text-white/50 transition-colors py-1">
+              ลองทำใหม่ →
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -318,6 +499,14 @@ function TarotTab({ onReadingRequest }: { onReadingRequest: (msg: string) => voi
             >
               🔮 ให้อาจารย์ดาวอ่านไพ่
             </button>
+          )}
+          {card && flipped && (
+            <ShareButton
+              text={`🃏 ฉันจับไพ่ทาโรต์ได้ "${card.thai}" (${card.name})\n${isReversed ? "⚠️ กลับด้าน (Reversed)\n" : ""}✨ ความหมาย: ${card.meaning}\n\nดูดวงและจับไพ่ทาโรต์ →`}
+              label="แชร์ไพ่ที่ดึง ↗"
+              icon={card.emoji}
+              className="w-full justify-center py-3"
+            />
           )}
         </div>
       </div>
@@ -443,6 +632,19 @@ function CompatibilityTab({ onReadingRequest }: { onReadingRequest: (msg: string
               🔮 ขอคำทำนายเพิ่มเติม
             </button>
           )}
+          {score !== null && (() => {
+            const z1 = ZODIAC_SIGNS.find(z => z.en === person1);
+            const z2 = ZODIAC_SIGNS.find(z => z.en === person2);
+            const lbl = score >= 90 ? "คู่แท้จากดวงดาว ✨" : score >= 75 ? "เข้ากันได้ดีมาก 💕" : score >= 60 ? "มีศักยภาพ 🌟" : "ท้าทายแต่เรียนรู้ได้ 🔥";
+            return (
+              <ShareButton
+                text={`💕 ผลดวงคู่ของฉัน\n${z1?.symbol} ราศี${z1?.thai} × ${z2?.symbol} ราศี${z2?.thai}\n\nคะแนนความเข้ากัน: ${score}%\n${lbl}\n\nดูดวงคู่ของคุณ →`}
+                label="แชร์ผลความเข้ากัน ↗"
+                icon="💕"
+                className="w-full justify-center py-3"
+              />
+            );
+          })()}
         </div>
       </div>
     </div>
@@ -494,6 +696,19 @@ export default function AstrologyChatPage() {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, isLoading]);
 
+  // Read URL params on mount (for shareable chart links)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const d = params.get("d"), t = params.get("t"), c = params.get("c");
+    if (d && d.length === 8) {
+      setBirthDate(`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`);
+      setActiveTab("birth");
+    }
+    if (t && t.length >= 3) setBirthTime(`${t.slice(0,2)}:${t.slice(2,4)}`);
+    if (c) setBirthCity(Math.min(parseInt(c) || 0, THAI_CITIES.length - 1));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const sendMessage = useCallback(async (text?: string) => {
     const msg = (text ?? input).trim();
     if (!msg || isLoading) return;
@@ -544,6 +759,10 @@ export default function AstrologyChatPage() {
       const json = await res.json();
       if (json.error) throw new Error(json.error);
       setChartData(json as ChartData);
+      // Update URL so chart is shareable
+      const dStr = birthDate.replace(/-/g, "");
+      const tStr = (birthTime || "12:00").replace(":", "");
+      window.history.replaceState({}, "", `?d=${dStr}&t=${tStr}&c=${birthCity}`);
     } catch (e: unknown) {
       setChartError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
     } finally {
@@ -661,6 +880,10 @@ export default function AstrologyChatPage() {
               </div>
               {messages.length <= 1 && (
                 <div className="flex-shrink-0 px-3 sm:px-5 py-2">
+                  <div className="mb-3 px-4 py-3 rounded-2xl border border-amber-400/10 bg-amber-400/5 text-center">
+                    <p className="text-amber-400/50 text-[9px] uppercase tracking-widest font-mono mb-1">✨ ดาวบอกวันนี้</p>
+                    <p className="text-amber-200/80 text-xs font-thai-serif leading-relaxed italic">&ldquo;{DAILY_HOOKS[seed % DAILY_HOOKS.length]}&rdquo;</p>
+                  </div>
                   <p className="text-white/18 text-[9px] uppercase tracking-[0.18em] font-display font-light mb-2.5">คำถามยอดนิยม</p>
                   <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
                     {QUICK_PROMPTS.map(p => (
@@ -775,6 +998,39 @@ export default function AstrologyChatPage() {
                       data={chartData}
                       onAskAI={(msg) => { setActiveTab("chat"); sendMessage(msg); }}
                     />
+
+                    {/* ── Share card ── */}
+                    <div className="mt-5 rounded-2xl border border-amber-400/15 bg-gradient-to-br from-amber-400/5 via-purple-900/10 to-black/30 p-5">
+                      <p className="text-amber-400/50 text-[10px] uppercase tracking-widest font-mono mb-3">✨ แชร์ดวงชาตานี้</p>
+                      <div className="rounded-xl border border-white/5 bg-black/30 p-4 mb-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="text-4xl">{chartData.lagna.sign_sym}</span>
+                          <div>
+                            <p className="text-amber-300 font-thai-serif font-semibold text-base">ลัคนา{chartData.lagna.sign}</p>
+                            <p className="text-white/30 text-[10px] font-mono">{chartData.lagna.pos} · {chartData.lagna.nakshatra}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {chartData.planets
+                            .filter(p => ["Sun","Moon","Mars","Jupiter"].includes(p.en))
+                            .map(p => (
+                              <div key={p.en} className="flex items-center gap-2 text-xs">
+                                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: p.color }} />
+                                <span className="text-white/40 font-thai-serif">{p.name.replace(/^[๐-๙]+\./, "")}</span>
+                                <span className="text-white/60 font-thai-serif ml-auto">{p.sign}</span>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                      <ShareButton
+                        text={`✨ ดวงชาตาของฉัน\n🌟 ลัคนา: ${chartData.lagna.sign} ${chartData.lagna.sign_sym} · ${chartData.lagna.pos}\n☀️ อาทิตย์: ${chartData.planets.find(p=>p.en==="Sun")?.sign ?? ""}\n🌙 จันทร์: ${chartData.planets.find(p=>p.en==="Moon")?.sign ?? ""}\n♂️ อังคาร: ${chartData.planets.find(p=>p.en==="Mars")?.sign ?? ""}\n♃ พฤหัสบดี: ${chartData.planets.find(p=>p.en==="Jupiter")?.sign ?? ""}\n\n🔭 คำนวณด้วย Swiss Ephemeris · Lahiri Sidereal\n📅 วันเกิด: ${birthDate}\n\nดูดวงชาตาของคุณ →`}
+                        url={`${APP_URL}?d=${birthDate.replace(/-/g, "")}&t=${(birthTime || "12:00").replace(":", "")}&c=${birthCity}`}
+                        label="แชร์ดวงชาตานี้ ↗"
+                        icon="🪐"
+                        className="w-full justify-center py-3"
+                      />
+                      <p className="text-white/20 text-[10px] text-center mt-2 font-thai-serif">เพื่อนที่รับลิงก์จะเห็นดวงของคุณและดูดวงตัวเองได้ทันที</p>
+                    </div>
                   </>
                 )}
 
@@ -844,6 +1100,13 @@ export default function AstrologyChatPage() {
                   className="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-thai-serif font-semibold shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all">
                   🌙 ขอคำทำนายวันนี้
                 </button>
+                <ShareButton
+                  text={`🌙 พลังงานจักรวาล ${todayThai}\n\n❤️ ความรัก: ${energyValues.love}%\n💼 การงาน: ${energyValues.work}%\n💰 การเงิน: ${energyValues.money}%\n💪 สุขภาพ: ${energyValues.health}%\n🍀 โชคลาภ: ${energyValues.luck}%\n\n✨ เลขมงคล: ${luckyNumbers.join(", ")}\n🎨 สีมงคล: ${lucky.name}\n⏰ ฤกษ์มงคล: ${luckyTimes.join(" และ ")}\n🌙 ดวงจันทร์: ${moon.thai} (${moon.illumination}%)\n\nดูดวงของคุณ →`}
+                  label="แชร์พลังงานวันนี้ ↗"
+                  icon="🌙"
+                  className="w-full justify-center py-3"
+                />
+                <DailyPersonalityQuiz />
               </div>
             </div>
           )}
