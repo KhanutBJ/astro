@@ -192,18 +192,6 @@ npm run lint     # ESLint check
 
 ---
 
-## 📄 License
-
-MIT — see [LICENSE](LICENSE)
-
----
-
-## 🤝 Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md)
-
----
-
 ## 📬 Contact
 
 - **Email**: hello@dawtamnai.ai
