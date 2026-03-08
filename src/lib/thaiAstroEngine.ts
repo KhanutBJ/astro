@@ -6,6 +6,7 @@
  */
 
 import { Body, GeoVector, Ecliptic, EclipticGeoMoon, SiderealTime } from "astronomy-engine";
+import { calculateVimshottariDasha } from "./panchangEngine";
 
 const DEG2RAD = Math.PI / 180;
 const RAD2DEG = 180 / Math.PI;
@@ -437,12 +438,17 @@ export function generateChart(inp: ChartInput) {
     planets.reduce((s, p) => s + p.std_strength, 0) / planets.length * 100
   ) / 100;
 
+  // Vimshottari Dasha from Moon's sidereal longitude
+  const moonSidLon = siderealLons["๒.จันทร์"];
+  const dasha = calculateVimshottariDasha(moonSidLon, utcDate);
+
   return {
     lagna,
     planets,
     aspect_pairs,
     houses,
     avg_strength,
+    dasha,
     meta: { year, month, day, hour, minute, lat, lon, day_of_week: dowKey },
     reference: {
       zodiac_full: ZODIAC_FULL,

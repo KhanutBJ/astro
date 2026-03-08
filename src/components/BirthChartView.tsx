@@ -30,6 +30,8 @@ export interface ChartData {
   aspect_pairs: AspectPair[];
   houses: HouseSummary[];
   avg_strength: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dasha?: any[];
   meta: { year: number; month: number; day: number; hour: number; minute: number; lat: number; lon: number; day_of_week: string };
   reference: { zodiac_full: string[]; zodiac_sym: string[]; houses_thai: string[]; aspect_colors: Record<string,string>; aspect_thai: Record<string,string> };
 }

@@ -17,7 +17,27 @@ const THAI_CITIES = [
 
 // ─── Types ───────────────────────────────────────────────────
 type Message = { role: "user" | "assistant"; content: string };
-type Tab = "chat" | "birth" | "daily" | "compat" | "tarot";
+type Tab = "chat" | "birth" | "daily" | "compat" | "tarot" | "muhurta";
+
+type PanchangData = {
+  tithi: { number: number; name: string; paksha: string; good: boolean };
+  nakshatra: { idx: number; name: string; typeLabel: string; pada: number; type: number };
+  yoga: { idx: number; name: string; good: boolean };
+  karana: { name: string; isBhadra: boolean };
+  vara: { name: string; quality: number };
+  score: number;
+};
+type MuhurtaSlot = {
+  date: string; startHour: number; endHour: number; score: number;
+  tithi: string; nakshatra: string; yoga: string; vara: string;
+  reasons: string[]; quality: "ดีมาก" | "ดี" | "พอใช้";
+};
+type AntarDasha = { planet: string; en: string; color: string; emoji: string; start: string; end: string; isCurrent: boolean };
+type DashaPeriod = {
+  planet: string; en: string; color: string; emoji: string;
+  start: string; end: string; isCurrent: boolean; yearsTotal: number;
+  antardasha?: AntarDasha[];
+};
 
 // ─── Data ────────────────────────────────────────────────────
 const ZODIAC_SIGNS = [
@@ -651,7 +671,259 @@ function CompatibilityTab({ onReadingRequest }: { onReadingRequest: (msg: string
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────
+// ─── Dasha Timeline Component ─────────────────────────────────────────────
+function DashaTimeline({ dasha, birthDate, onAskAI }: { dasha: DashaPeriod[]; birthDate: string; onAskAI: (m: string) => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const current = dasha.find(d => d.isCurrent);
+  const currentAntar = current?.antardasha?.find(a => a.isCurrent);
+  const now = new Date();
+  return (
+    <div className="mt-5 rounded-2xl border border-purple-400/15 bg-gradient-to-br from-purple-900/10 to-black/30 p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-lg">🪐</span>
+        <div>
+          <p className="text-purple-300/60 text-[10px] uppercase tracking-widest font-mono">วิมศอตตรี ดาชา (Vimshottari Dasha)</p>
+          <p className="text-white/30 text-[10px] font-thai-serif">ช่วงเวลาดาวประจำชีวิต · {birthDate}</p>
+        </div>
+      </div>
+      {current && (
+        <div className="rounded-xl border p-4 mb-4" style={{ borderColor: current.color + "40", background: current.color + "10" }}>
+          <p className="text-white/30 text-[10px] font-mono uppercase tracking-wider mb-2">มหาดาชาปัจจุบัน</p>
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-3xl">{current.emoji}</span>
+            <div>
+              <p className="font-thai-serif font-bold text-xl" style={{ color: current.color }}>ปูรฮอดาชา{current.planet}</p>
+              <p className="text-white/40 text-xs font-mono">{current.start} → {current.end}</p>
+              <p className="text-white/30 text-[10px] font-thai-serif">({current.yearsTotal} ปี)</p>
+            </div>
+          </div>
+          {currentAntar && (
+            <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 mb-3">
+              <p className="text-white/30 text-[10px] font-mono mb-1">อันตรดาชาปัจจุบัน</p>
+              <p className="font-thai-serif text-sm font-semibold" style={{ color: currentAntar.color }}>
+                {currentAntar.emoji} {currentAntar.planet}
+                <span className="text-white/30 font-normal ml-2 font-mono text-xs">{currentAntar.start} → {currentAntar.end}</span>
+              </p>
+            </div>
+          )}
+          {current.antardasha && expanded && (
+            <div className="space-y-1 mb-2">
+              <p className="text-white/30 text-[10px] font-mono uppercase mb-2">ลำดับอันตรดาชา</p>
+              {current.antardasha.map((ad, i) => (
+                <div key={i} className={`flex items-center justify-between px-3 py-1.5 rounded-lg ${ ad.isCurrent ? "border border-white/20 bg-white/5" : "" }`}>
+                  <span className="font-thai-serif text-xs" style={{ color: ad.isCurrent ? ad.color : "rgba(255,255,255,0.35)" }}>
+                    {ad.emoji} {ad.planet}
+                    {ad.isCurrent && <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">กำลังดำเนินอยู่</span>}
+                  </span>
+                  <span className="text-white/20 text-[10px] font-mono">{ad.start} → {ad.end}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {current.antardasha && (
+            <button onClick={() => setExpanded(e => !e)} className="text-purple-400/50 hover:text-purple-300 text-[10px] font-mono mt-1 transition-colors">
+              {expanded ? "▲ ย่อ" : "▼ ดูอันตรดาชาทั้งหมด"}
+            </button>
+          )}
+        </div>
+      )}
+      <div className="space-y-2 mb-4">
+        <p className="text-white/20 text-[10px] font-mono uppercase tracking-wider">ไทม์ไลน์มหาดาชา</p>
+        {dasha.filter(d => new Date(d.end) >= now).slice(0, 7).map((d, i) => {
+          const s = new Date(d.start), e = new Date(d.end);
+          const pct = d.isCurrent ? Math.round(((now.getTime() - s.getTime()) / (e.getTime() - s.getTime())) * 100) : (s < now ? 100 : 0);
+          return (
+            <div key={i} className="flex items-center gap-3">
+              <span className="text-sm w-5 flex-shrink-0">{d.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between mb-0.5">
+                  <span className="text-xs font-thai-serif truncate" style={{ color: d.isCurrent ? d.color : "rgba(255,255,255,0.35)" }}>
+                    {d.planet}
+                    {d.isCurrent && <span className="ml-1.5 text-[9px] px-1.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono">กำลังเดิน</span>}
+                  </span>
+                  <span className="text-white/20 text-[10px] font-mono flex-shrink-0">{d.start.slice(0,4)}–{d.end.slice(0,4)}</span>
+                </div>
+                <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                  <div style={{ width: `${pct}%`, background: d.color + "cc" }} className="h-full rounded-full transition-all duration-1000" />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <button onClick={() => onAskAI(`วิเคราะห์มหาดาชา${current?.planet ?? ""}ให้หน่อยค่ะ ตอนนี้อยู่ในอันตรดาชา${currentAntar?.planet ?? ""} ส่งผลต่อชีวิตยังไงบ้าง?`)}
+        className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-700 text-white font-thai-serif font-semibold text-sm shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all">
+        🪐 ให้อาจารย์ดาวอ่านดาชา
+      </button>
+    </div>
+  );
+}
+
+// ─── Panchang Card ─────────────────────────────────────────────────────
+function PanchangCard({ data, loading }: { data: PanchangData | null; loading: boolean }) {
+  if (loading) return (
+    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 flex items-center gap-3">
+      <div className="w-4 h-4 border-2 border-purple-500/40 border-t-purple-400 rounded-full animate-spin flex-shrink-0" />
+      <p className="text-white/30 text-xs font-thai-serif">กำลังคำนวณปัญจางค์...</p>
+    </div>
+  );
+  if (!data) return null;
+  const sc = data.score;
+  const scColor = sc >= 80 ? "#22c55e" : sc >= 65 ? "#f59e0b" : "#ef4444";
+  const scLabel = sc >= 80 ? "วันดีมาก ✨" : sc >= 65 ? "วันพอใช้ 🌙" : "ระวังไว้ ⚠️";
+  return (
+    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest">📅 ปัญจางค์วันนี้</p>
+        <span className="text-xs font-thai-serif px-2.5 py-1 rounded-full border" style={{ color: scColor, borderColor: scColor + "40", background: scColor + "12" }}>{scLabel}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { label: "ติถิ", val: `${data.tithi.paksha} ${data.tithi.name}`, sub: `วันที่ ${data.tithi.number}/30`, ok: data.tithi.good },
+          { label: "นักษัตรจันทร์", val: data.nakshatra.name, sub: `บาท ${data.nakshatra.pada} · ${data.nakshatra.typeLabel}`, ok: data.nakshatra.type <= 1 },
+          { label: "โยคะ", val: data.yoga.name, sub: data.yoga.good ? "ดี ✓" : "หลีกเลี่ยง", ok: data.yoga.good },
+          { label: "กรณะ", val: data.karana.name, sub: data.karana.isBhadra ? "⚠️ ภัทร" : "ปกติ", ok: !data.karana.isBhadra },
+        ].map(({ label, val, sub, ok }) => (
+          <div key={label} className="rounded-xl bg-white/[0.03] border border-white/5 p-2.5">
+            <p className="text-white/25 text-[10px] font-mono mb-1">{label}</p>
+            <p className={`font-thai-serif font-semibold text-sm ${ok ? "text-emerald-400" : "text-white/60"}`}>{val}</p>
+            <p className="text-white/20 text-[10px]">{sub}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3">
+        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+          <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${sc}%`, background: `linear-gradient(90deg,${scColor}88,${scColor})` }} />
+        </div>
+        <p className="text-white/15 text-[10px] text-right mt-0.5 font-mono">ความเป็นมงคล {sc}/100</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Muhurta Tab ─────────────────────────────────────────────────────────
+const EVENT_TYPES = [
+  { id: "wedding",  label: "💍 แต่งงาน" },
+  { id: "business", label: "💼 เปิดธุรกิจ" },
+  { id: "travel",   label: "✈️ เดินทาง" },
+  { id: "study",    label: "📚 เริ่มเรียน" },
+  { id: "health",   label: "🏥 ผ่าตัด/รักษา" },
+  { id: "general",  label: "✨ ทั่วไป" },
+];
+
+function MuhurtaTab({ onAskAI }: { onAskAI: (msg: string) => void }) {
+  const [eventType, setEventType] = useState("general");
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [days, setDays] = useState(7);
+  const [slots, setSlots] = useState<MuhurtaSlot[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const findSlots = async () => {
+    setLoading(true); setSlots(null);
+    try {
+      const res = await fetch("/api/muhurta", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isoDate: startDate + "T00:00:00Z", days }),
+      });
+      const data = await res.json();
+      setSlots(data.slots ?? []);
+    } catch { setSlots([]); }
+    finally { setLoading(false); }
+  };
+
+  const thaiDow = ["อา","จ","อ","พ","พฤ","ศ","ส"];
+  const thaiMo  = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+  const fmtDate = (s: string) => { const d = new Date(s + "T00:00:00"); return `${thaiDow[d.getDay()]} ${d.getDate()} ${thaiMo[d.getMonth()]}`; };
+  const qColor: Record<string, string> = { "ดีมาก": "#22c55e", "ดี": "#f59e0b", "พอใช้": "#8b5cf6" };
+
+  return (
+    <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
+      <div className="max-w-lg mx-auto">
+        <div className="text-center mb-6">
+          <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest mb-1">ฤกษ์มงคล · Muhurta</p>
+          <h2 className="font-thai-serif text-2xl font-bold gold-text mb-1">หาวันดีเวลาดี</h2>
+          <p className="text-white/30 text-xs font-thai-serif">คำนวณจากปัญจางค์จริง — ติถิ นักษัตร โยคะ กรณะ</p>
+        </div>
+        <div className="mb-4">
+          <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest mb-2">เลือกประเภทงาน</p>
+          <div className="grid grid-cols-3 gap-2">
+            {EVENT_TYPES.map(e => (
+              <button key={e.id} onClick={() => setEventType(e.id)}
+                className={`py-2.5 rounded-xl border text-xs font-thai-serif transition-all ${
+                  eventType === e.id ? "border-amber-400/60 bg-amber-400/10 text-amber-300" : "border-white/5 bg-white/[0.02] text-white/50 hover:border-white/15"}`}>
+                {e.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div>
+            <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest mb-2">เริ่มต้นหา</p>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-white text-sm outline-none focus:border-amber-400/50 [color-scheme:dark]" />
+          </div>
+          <div>
+            <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest mb-2">จำนวนวัน</p>
+            <select value={days} onChange={e => setDays(+e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-white text-sm outline-none focus:border-amber-400/50 [color-scheme:dark]">
+              <option value={3}>3 วัน</option><option value={7}>7 วัน</option><option value={14}>14 วัน</option>
+            </select>
+          </div>
+        </div>
+        <button onClick={findSlots} disabled={loading}
+          className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-thai-serif font-bold mb-5 shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+          {loading ? <><div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /><span>กำลังคำนวณดาว...</span></> : <><span>🔍</span><span>หาฤกษ์ดี</span></>}
+        </button>
+        {slots !== null && slots.length === 0 && (
+          <p className="text-center text-white/40 font-thai-serif py-8">ไม่พบฤกษ์ดีในช่วงนี้ ลองขยายวันที่</p>
+        )}
+        {slots !== null && slots.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-white/25 text-[10px] font-mono uppercase">พบ {slots.length} ฤกษ์ดี — เรียงตามความเป็นมงคล</p>
+            {slots.slice(0, 10).map((s, i) => (
+              <div key={i} className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <p className="font-thai-serif font-bold text-white text-sm">{fmtDate(s.date)}</p>
+                    <p className="text-white/45 text-xs font-mono">{String(s.startHour).padStart(2,"0")}:00 – {String(s.endHour).padStart(2,"0")}:00 น.</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {s.reasons.map((r, j) => <span key={j} className="px-1.5 py-0.5 rounded-full bg-white/5 text-white/35 text-[10px] font-thai-serif">{r}</span>)}
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0 ml-3">
+                    <p className="font-bold text-lg font-mono" style={{ color: qColor[s.quality] }}>{s.score}</p>
+                    <p className="text-[10px] font-thai-serif" style={{ color: qColor[s.quality] }}>{s.quality}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-white/30 font-thai-serif mb-3">
+                  <span>ติถิ: {s.tithi}</span><span>นักษัตร: {s.nakshatra}</span>
+                  <span>โยคะ: {s.yoga}</span><span>วาระ: {s.vara}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => onAskAI(`วิเคราะห์ฤกษ์วันที่ ${s.date} เวลา ${String(s.startHour).padStart(2,"0")}:00 น. เหมาะกับ${EVENT_TYPES.find(e=>e.id===eventType)?.label ?? "งานทั่วไป"}ไหมคะ?`)}
+                    className="flex-1 py-2 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-thai-serif hover:bg-amber-400/20 transition-all">
+                    🔮 ขอคำทำนาย
+                  </button>
+                  <ShareButton
+                    text={`🗓️ ฤักษ์ดีที่ฉันพบ
+📅 ${s.date} เวลา ${String(s.startHour).padStart(2,"0")}:00–${String(s.endHour).padStart(2,"0")}:00 น.
+✨ ความเป็นมงคล: ${s.score}/100 (${s.quality})
+${s.reasons.join(" · ")}
+
+หาฤกษ์ดีของคุณ →`}
+                    label="แชร์ฤกษ์" className="py-2 px-3"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ─────────────────────────────────────────────────────────────
 export default function AstrologyChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: "สวัสดีค่ะ ✨ ฉันคืออาจารย์ดาว\n\nพร้อมทำนายดวงชะตาให้คุณแล้ว 🌙\nบอกชื่อและเพศ (ชาย/หญิง) ได้เลยนะคะ หรือจะบอกวันเดือนปีเกิดมาเลยก็ได้ค่ะ จะได้ดูดวงได้แม่นยำยิ่งขึ้น ⭐" },
@@ -667,6 +939,16 @@ export default function AstrologyChatPage() {
   const [chartLoading, setChartLoading] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Panchang state
+  const [panchangData, setPanchangData] = useState<PanchangData | null>(null);
+  const [panchangLoading, setPanchangLoading] = useState(false);
+  // Synastry state
+  const [synMode, setSynMode] = useState(false);
+  const [synDateA, setSynDateA] = useState("");
+  const [synDateB, setSynDateB] = useState("");
+  const [synChartA, setSynChartA] = useState<ChartData | null>(null);
+  const [synChartB, setSynChartB] = useState<ChartData | null>(null);
+  const [synLoading, setSynLoading] = useState(false);
 
   const today = new Date();
   const seed = getSeed(today);
@@ -695,6 +977,21 @@ export default function AstrologyChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, isLoading]);
+
+  // Fetch panchang for today whenever daily tab is opened
+  useEffect(() => {
+    if (activeTab !== "daily" || panchangData || panchangLoading) return;
+    setPanchangLoading(true);
+    fetch("/api/panchang", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isoDate: new Date().toISOString() }),
+    })
+      .then(r => r.json())
+      .then(d => { if (!d.error) setPanchangData(d as PanchangData); })
+      .catch(() => {})
+      .finally(() => setPanchangLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   // Read URL params on mount (for shareable chart links)
   useEffect(() => {
@@ -784,6 +1081,7 @@ export default function AstrologyChatPage() {
     { id: "daily",  label: "🌙 วันนี้" },
     { id: "compat", label: "💕 คู่ดวง" },
     { id: "tarot",  label: "🃏 ทาโรต์" },
+    { id: "muhurta", label: "🗓️ ฤกษ์" },
   ];
 
   return (
@@ -999,6 +1297,15 @@ export default function AstrologyChatPage() {
                       onAskAI={(msg) => { setActiveTab("chat"); sendMessage(msg); }}
                     />
 
+                    {/* ── Vimshottari Dasha ── */}
+                    {chartData.dasha && chartData.dasha.length > 0 && (
+                      <DashaTimeline
+                        dasha={chartData.dasha as DashaPeriod[]}
+                        birthDate={birthDate}
+                        onAskAI={(msg) => { setActiveTab("chat"); sendMessage(msg); }}
+                      />
+                    )}
+
                     {/* ── Share card ── */}
                     <div className="mt-5 rounded-2xl border border-amber-400/15 bg-gradient-to-br from-amber-400/5 via-purple-900/10 to-black/30 p-5">
                       <p className="text-amber-400/50 text-[10px] uppercase tracking-widest font-mono mb-3">✨ แชร์ดวงชาตานี้</p>
@@ -1056,6 +1363,9 @@ export default function AstrologyChatPage() {
                   </div>
                 </div>
 
+                {/* Panchang */}
+                <PanchangCard data={panchangData} loading={panchangLoading} />
+
                 {/* Energy */}
                 <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
                   <p className="text-white/30 text-[10px] uppercase tracking-widest font-mono mb-4">⚡ พลังงานจักรวาล</p>
@@ -1111,14 +1421,109 @@ export default function AstrologyChatPage() {
             </div>
           )}
 
+          {/* Synastry mode in compat — two birth dates */}
+          {activeTab === "compat" && synMode && (
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
+              <div className="max-w-lg mx-auto">
+                <div className="flex items-center gap-2 mb-4">
+                  <button onClick={() => { setSynMode(false); setSynChartA(null); setSynChartB(null); }} className="text-white/30 hover:text-white/60 text-xs font-thai-serif">← กลับ</button>
+                  <h2 className="font-thai-serif text-xl font-bold gold-text">สยนาสตรี — เปรียบดวงสองคน</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                  {[
+                    { label: "👤 คนที่ 1", val: synDateA, set: setSynDateA },
+                    { label: "👤 คนที่ 2", val: synDateB, set: setSynDateB },
+                  ].map(({ label, val, set }) => (
+                    <div key={label}>
+                      <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest mb-2">{label}</p>
+                      <input type="date" value={val} onChange={e => set(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-white text-sm outline-none focus:border-amber-400/50 [color-scheme:dark]" />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  disabled={!synDateA || !synDateB || synLoading}
+                  onClick={async () => {
+                    setSynLoading(true); setSynChartA(null); setSynChartB(null);
+                    const fetchChart = async (dateStr: string) => {
+                      const d = new Date(dateStr);
+                      const res = await fetch("/api/chart", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ year: d.getFullYear(), month: d.getMonth()+1, day: d.getDate(), hour: 12, minute: 0 }) });
+                      return res.json();
+                    };
+                    const [a, b] = await Promise.all([fetchChart(synDateA), fetchChart(synDateB)]);
+                    setSynChartA(a); setSynChartB(b); setSynLoading(false);
+                  }}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-600 text-white font-thai-serif font-bold mb-5 disabled:opacity-40 flex items-center justify-center gap-2">
+                  {synLoading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>คำนวณ...</span></> : "💞 เปรียบดวง"}
+                </button>
+                {synChartA && synChartB && (() => {
+                  const PAIRS: Array<{en: string; label: string}> = [
+                    {en:"Sun",label:"☀️"},{en:"Moon",label:"🌙"},{en:"Mars",label:"♂️"},{en:"Venus",label:"♀️"},{en:"Jupiter",label:"♃️"},{en:"Saturn",label:"♄️"},
+                  ];
+                  const dist = (a: number, b: number) => { let d = Math.abs(a - b); if (d > 6) d = 12 - d; return d; };
+                  const aspLabel = (d: number) => d === 0 ? "🟡 กุม" : d === 6 ? "🔴 เล็ง" : d === 4 || d === 8 ? "🟢 ตรีโกณ" : d === 3 || d === 9 ? "🔵 ฉาก" : "⚪";
+                  return (
+                    <div>
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        {([synChartA, synChartB] as ChartData[]).map((c, idx) => (
+                          <div key={idx} className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                            <p className="text-white/30 text-[10px] font-mono mb-1">คนที่ {idx+1}</p>
+                            <p className="font-thai-serif text-sm font-semibold text-amber-300">ลัคนา{c.lagna.sign} {c.lagna.sign_sym}</p>
+                            {PAIRS.slice(0,3).map(p => {
+                              const pl = c.planets.find(x => x.en === p.en);
+                              return pl ? <p key={p.en} className="text-white/40 text-xs font-thai-serif">{p.label} {pl.sign}</p> : null;
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 mb-4">
+                        <p className="text-white/30 text-[10px] font-mono uppercase mb-3">แอสเปกต์ระหว่างดาวสำคัญ</p>
+                        {PAIRS.map(p => {
+                          const plA = synChartA?.planets.find(x => x.en === p.en);
+                          const plB = synChartB?.planets.find(x => x.en === p.en);
+                          if (!plA || !plB) return null;
+                          const d = dist(plA.sign_idx, plB.sign_idx);
+                          return (
+                            <div key={p.en} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                              <span className="text-white/50 text-xs font-thai-serif">{p.label} {plA.sign} × {plB.sign}</span>
+                              <span className="text-xs">{aspLabel(d)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <button onClick={() => sendMessage(`วิเคราะห์ความเข้ากันของคนที่เกิด ${synDateA} กับเกิด ${synDateB} ลัคนา ${synChartA?.lagna.sign} เกี่ยวกับลัคนา ${synChartB?.lagna.sign} ค่า`) }
+                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-thai-serif font-bold hover:scale-[1.02] active:scale-[0.98] transition-all">
+                        🔮 อาจารย์ดาววิเคราะห์สยนาสตรี
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
           {/* ── TAB: COMPAT ── */}
-          {activeTab === "compat" && (
-            <CompatibilityTab onReadingRequest={(msg) => { setActiveTab("chat"); sendMessage(msg); }} />
+          {activeTab === "compat" && !synMode && (
+            <>
+              <div className="flex-shrink-0 px-4 pt-4 pb-0">
+                <button onClick={() => setSynMode(true)}
+                  className="w-full py-2.5 rounded-xl border border-purple-400/30 bg-purple-400/5 text-purple-300 text-xs font-thai-serif hover:bg-purple-400/10 transition-all">
+                  🔭 เสริมประสิทธิภาพ: สยนาสตรี (ใส่วันเกิดทั้งสองคน)
+                </button>
+              </div>
+              <CompatibilityTab onReadingRequest={(msg) => { setActiveTab("chat"); sendMessage(msg); }} />
+            </>
           )}
 
           {/* ── TAB: TAROT ── */}
           {activeTab === "tarot" && (
             <TarotTab onReadingRequest={(msg) => { setActiveTab("chat"); sendMessage(msg); }} />
+          )}
+
+          {/* ── TAB: MUHURTA ── */}
+          {activeTab === "muhurta" && (
+            <MuhurtaTab onAskAI={(msg) => { setActiveTab("chat"); sendMessage(msg); }} />
           )}
         </main>
 
@@ -1133,6 +1538,8 @@ export default function AstrologyChatPage() {
               <EnergyBar label="🍀 โชค"  value={energyValues.luck}   color="#a855f7" />
             </div>
           </div>
+          {/* Panchang sidebar widget */}
+          <PanchangCard data={panchangData} loading={panchangLoading} />
           <div className="rounded-2xl border border-amber-400/10 bg-amber-400/5 p-4">
             <p className="text-amber-400/60 text-[10px] uppercase tracking-widest font-mono mb-3">มงคลวันนี้</p>
             <div className="flex gap-1.5 mb-3">
