@@ -47,7 +47,10 @@
 .font-thai-serif { font-family: var(--f-display); font-weight: 300; }
 
 /* ─── Reset / base ───────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; }
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent; /* remove tap flash on Android/iOS */
+}
 
 html { height: 100%; }
 

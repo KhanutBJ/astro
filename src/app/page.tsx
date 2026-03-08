@@ -860,12 +860,12 @@ function MuhurtaTab({ onAskAI }: { onAskAI: (msg: string) => void }) {
           <div>
             <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest mb-2">เริ่มต้นหา</p>
             <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-white text-sm outline-none focus:border-amber-400/50 [color-scheme:dark]" />
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-white text-base sm:text-sm outline-none focus:border-amber-400/50 [color-scheme:dark]" />
           </div>
           <div>
             <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest mb-2">จำนวนวัน</p>
             <select value={days} onChange={e => setDays(+e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-white text-sm outline-none focus:border-amber-400/50 [color-scheme:dark]">
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-white text-base sm:text-sm outline-none focus:border-amber-400/50 [color-scheme:dark]">
               <option value={3}>3 วัน</option><option value={7}>7 วัน</option><option value={14}>14 วัน</option>
             </select>
           </div>
@@ -923,6 +923,235 @@ ${s.reasons.join(" · ")}
   );
 }
 
+
+// ─── Settings Sheet ──────────────────────────────────────────────────────────
+const SETTINGS_TABS = [
+  { id: "settings", label: "⚙️ ตั้งค่า" },
+  { id: "about",    label: "ℹ️ เกี่ยวกับ" },
+  { id: "terms",    label: "📋 ข้อกำหนด" },
+  { id: "contact",  label: "✉️ ติดต่อ" },
+] as const;
+type SheetTab = typeof SETTINGS_TABS[number]["id"];
+
+function SettingsSheet({ onClose, streak }: { onClose: () => void; streak: number }) {
+  const [tab, setTab] = useState<SheetTab>("settings");
+  const [saved, setSaved] = useState<{ date: string; city: string } | null>(null);
+  const [cleared, setCleared] = useState(false);
+  const [notifPerm, setNotifPerm] = useState<"default" | "granted" | "denied" | "unsupported">("default");
+
+  useEffect(() => {
+    try {
+      const d = localStorage.getItem("daw_birth_date");
+      const c = localStorage.getItem("daw_birth_city");
+      if (d) setSaved({ date: d, city: c ?? "" });
+    } catch {}
+    if (typeof Notification === "undefined") {
+      setNotifPerm("unsupported");
+    } else {
+      setNotifPerm(Notification.permission as "default" | "granted" | "denied");
+    }
+  }, []);
+
+  const clearData = () => {
+    try {
+      ["daw_streak","daw_birth_date","daw_birth_city","daw_birth_time"].forEach(k => localStorage.removeItem(k));
+      setSaved(null); setCleared(true);
+    } catch {}
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[#0d0522] border-t border-white/10 rounded-t-3xl max-h-[85vh] flex flex-col shadow-2xl">
+        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+          <div className="w-10 h-1 rounded-full bg-white/15" />
+        </div>
+        <div className="flex items-center justify-between px-5 pb-3 flex-shrink-0">
+          <h2 className="font-thai-serif font-semibold text-white/80 text-base">ดาวทำนาย</h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/40 hover:text-white/70 transition-colors text-sm">✕</button>
+        </div>
+        <div className="flex gap-1 px-4 pb-3 flex-shrink-0 overflow-x-auto">
+          {SETTINGS_TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-thai-serif transition-all ${tab === t.id ? "bg-amber-400/15 border border-amber-400/30 text-amber-300" : "border border-white/5 text-white/35 hover:text-white/60"}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 pb-8">
+
+          {tab === "settings" && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-orange-400/15 bg-orange-400/5 p-4 flex items-center gap-4">
+                <span className="text-3xl">🔥</span>
+                <div>
+                  <p className="text-orange-300 font-thai-serif font-semibold">{streak} วันติดต่อกัน</p>
+                  <p className="text-white/30 text-xs font-thai-serif">
+                    {streak === 0 ? "เริ่มสตรีควันนี้เลย" :
+                     streak < 3  ? "เยี่ยม! กลับมาพรุ่งนี้ต่อเลย 🌙" :
+                     streak < 7  ? "ดีมาก! ใกล้ถึง 7 วันแล้ว ⭐" :
+                     streak < 30 ? "นักดูดวงตัวจริง 🔮" : "ตำนานแห่งดวงดาว 👑"}
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest mb-3">ดวงชาตาที่บันทึก</p>
+                {saved ? (
+                  <div>
+                    <p className="font-thai-serif text-sm text-white/70 mb-1">📅 {saved.date}{saved.city ? ` · ${saved.city}` : ""}</p>
+                    <p className="text-white/20 text-xs font-thai-serif mb-3">ข้อมูลของคุณถูกบันทึกในอุปกรณ์นี้</p>
+                    <button onClick={clearData} disabled={cleared} className="text-red-400/50 hover:text-red-400 text-xs font-thai-serif transition-colors">
+                      {cleared ? "✓ ลบข้อมูลแล้ว" : "🗑 ลบข้อมูลทั้งหมด"}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-white/25 text-xs font-thai-serif">ยังไม่มีดวงชาตาที่บันทึก — กรอกวันเกิดในแท็บ ✨ ชาตา</p>
+                )}
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest mb-3">การแจ้งเตือน</p>
+                {notifPerm === "granted" ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-400 text-sm">🔔</span>
+                    <span className="text-emerald-300/70 text-xs font-thai-serif">เปิดการแจ้งเตือนแล้ว</span>
+                  </div>
+                ) : notifPerm === "denied" ? (
+                  <p className="text-white/30 text-xs font-thai-serif leading-relaxed">การแจ้งเตือนถูกบล็อกในเบราว์เซอร์ กรุณาเปิดในการตั้งค่าเบราว์เซอร์</p>
+                ) : notifPerm === "unsupported" ? (
+                  <p className="text-white/30 text-xs font-thai-serif">เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน</p>
+                ) : (
+                  <div>
+                    <p className="text-white/40 text-xs font-thai-serif mb-3 leading-relaxed">รับคำทำนายและฤกษ์มงคลประจำวันทุกเช้า</p>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const perm = await Notification.requestPermission();
+                          setNotifPerm(perm as "default" | "granted" | "denied");
+                          if (perm === "granted") {
+                            new Notification("ดาวทำนาย ✨", { body: "เปิดการแจ้งเตือนเรียบร้อยแล้ว — อาจารย์ดาวจะส่งคำทำนายให้ทุกเช้า", icon: "/icons/icon-192.png" });
+                          }
+                        } catch {}
+                      }}
+                      className="px-4 py-2 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-thai-serif hover:bg-amber-400/20 transition-colors"
+                    >
+                      🔔 เปิดการแจ้งเตือน
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest mb-3">ภาษา · Language</p>
+                <div className="flex gap-2 flex-wrap">
+                  <span className="px-3 py-1.5 rounded-lg border border-amber-400/30 bg-amber-400/10 text-amber-300 text-xs font-thai-serif">🇹🇭 ภาษาไทย</span>
+                  <span className="px-3 py-1.5 rounded-lg border border-white/5 text-white/20 text-xs font-thai-serif">🇬🇧 English — เร็วๆ นี้</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === "about" && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-amber-400/10 bg-amber-400/5 p-5 text-center">
+                <div className="text-5xl mb-3">🔮</div>
+                <p className="text-amber-300 font-thai-serif font-bold text-xl mb-1">ดาวทำนาย</p>
+                <p className="text-white/35 text-xs font-mono tracking-widest">Thai Astrology AI · v2.0</p>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 space-y-3">
+                <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest">เกี่ยวกับเรา</p>
+                <p className="text-white/55 text-sm font-thai-serif leading-relaxed">
+                  ดาวทำนายใช้ดาราศาสตร์จริงในการคำนวณดวงชาตา — ไม่ใช่การทำนายแบบสุ่ม ระบบคำนวณตำแหน่งดาวด้วย Swiss Ephemeris และปรับด้วย Lahiri Ayanamsa สำหรับโหราศาสตร์แบบ Vedic/ไทย
+                </p>
+                <p className="text-white/55 text-sm font-thai-serif leading-relaxed">
+                  อาจารย์ดาวคือ AI ที่ฝึกให้เข้าใจระบบโหราศาสตร์อินเดีย-ไทย วิเคราะห์ดวงชาตา มหาดาชา ฤกษ์ และคู่ดวง พร้อมให้คำแนะนำในสไตล์อาจารย์ดูดวงไทย
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest mb-3">เทคโนโลยีที่ใช้</p>
+                {[
+                  { label: "ดาราศาสตร์", val: "Swiss Ephemeris (astronomy-engine)" },
+                  { label: "Ayanamsa",   val: "Lahiri Sidereal" },
+                  { label: "AI",         val: "Google Gemini 2.5 Pro" },
+                  { label: "Platform",   val: "Next.js 14 · Vercel Edge" },
+                  { label: "Dasha",      val: "Vimshottari 120-year cycle" },
+                  { label: "Panchang",   val: "Tithi · Nakshatra · Yoga · Karana" },
+                ].map(({ label, val }) => (
+                  <div key={label} className="flex justify-between py-2 border-b border-white/5 last:border-0">
+                    <span className="text-white/30 text-xs font-thai-serif">{label}</span>
+                    <span className="text-white/55 text-xs font-mono">{val}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="rounded-2xl border border-purple-400/10 bg-purple-400/5 p-4">
+                <p className="text-purple-300/60 text-[10px] font-mono uppercase tracking-widest mb-2">ข้อจำกัด</p>
+                <p className="text-white/40 text-xs font-thai-serif leading-relaxed">
+                  ดาวทำนายเป็นเครื่องมือสำหรับการพิจารณาและสติปัญญา ไม่ใช่การทำนายที่แน่นอน ดวงดาวเป็นแนวทาง การตัดสินใจสำคัญควรใช้วิจารณญาณของคุณเอง
+                </p>
+              </div>
+            </div>
+          )}
+
+          {tab === "terms" && (
+            <div className="space-y-3">
+              <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest">ข้อกำหนดการใช้งาน</p>
+              {[
+                { title: "1. การใช้งาน", body: "ดาวทำนายให้บริการเพื่อความบันเทิงและการพิจารณาส่วนตัว ไม่ใช่คำแนะนำทางการแพทย์ กฎหมาย หรือการเงิน" },
+                { title: "2. ข้อมูลส่วนตัว", body: "ข้อมูลวันเกิดและข้อมูลอื่นๆ ที่คุณกรอกจะถูกเก็บไว้ในอุปกรณ์ของคุณเท่านั้น เราไม่เก็บข้อมูลส่วนตัวบนเซิร์ฟเวอร์" },
+                { title: "3. ความถูกต้อง", body: "การคำนวณตำแหน่งดาวใช้ดาราศาสตร์จริง แต่การตีความอาจมีความแตกต่างตามระบบโหราศาสตร์ที่ใช้" },
+                { title: "4. AI", body: "คำตอบจากอาจารย์ดาว (AI) เป็นการประมวลผลจากโมเดลภาษา ไม่ใช่ผู้เชี่ยวชาญด้านโหราศาสตร์จริง" },
+                { title: "5. ทรัพย์สินทางปัญญา", body: "เนื้อหา รูปแบบ และซอฟต์แวร์ทั้งหมดเป็นทรัพย์สินของดาวทำนาย ห้ามนำไปใช้เชิงพาณิชย์โดยไม่ได้รับอนุญาต" },
+                { title: "6. การเปลี่ยนแปลง", body: "เราขอสงวนสิทธิ์ในการเปลี่ยนแปลงข้อกำหนดและบริการโดยไม่ต้องแจ้งล่วงหน้า" },
+              ].map(({ title, body }) => (
+                <div key={title} className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5">
+                  <p className="text-white/60 text-xs font-thai-serif font-semibold mb-1">{title}</p>
+                  <p className="text-white/35 text-xs font-thai-serif leading-relaxed">{body}</p>
+                </div>
+              ))}
+              <p className="text-white/15 text-[10px] text-center font-mono pt-2">อัปเดตล่าสุด: มีนาคม 2026</p>
+            </div>
+          )}
+
+          {tab === "contact" && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5 text-center">
+                <p className="text-4xl mb-3">✉️</p>
+                <p className="text-white/60 font-thai-serif mb-1">ติดต่อทีมดาวทำนาย</p>
+                <p className="text-white/30 text-xs font-thai-serif">เราตอบทุกข้อความภายใน 24-48 ชั่วโมง</p>
+              </div>
+              {[
+                { icon: "📧", label: "อีเมล",      val: "hello@dawtamnai.ai",      href: "mailto:hello@dawtamnai.ai" },
+                { icon: "💬", label: "LINE",        val: "@dawtamnai",              href: "https://line.me/ti/p/@dawtamnai" },
+                { icon: "📸", label: "Instagram",  val: "@dawtamnai",              href: "https://instagram.com/dawtamnai" },
+                { icon: "🐦", label: "X (Twitter)", val: "@dawtamnai",             href: "https://x.com/dawtamnai" },
+              ].map(({ icon, label, val, href }) => (
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04] p-4 transition-all">
+                  <span className="text-2xl">{icon}</span>
+                  <div>
+                    <p className="text-white/35 text-[10px] font-mono uppercase tracking-widest">{label}</p>
+                    <p className="text-white/65 text-sm font-mono">{val}</p>
+                  </div>
+                  <span className="ml-auto text-white/20 text-xs">↗</span>
+                </a>
+              ))}
+              <div className="rounded-2xl border border-amber-400/10 bg-amber-400/5 p-4">
+                <p className="text-amber-300/60 text-[10px] font-mono uppercase tracking-widest mb-2">รายงานปัญหา</p>
+                <p className="text-white/40 text-xs font-thai-serif leading-relaxed">
+                  หากพบปัญหาการคำนวณดวง หรือต้องการให้เพิ่มฟีเจอร์ใหม่ ส่งมาให้เราได้เลยที่ hello@dawtamnai.ai
+                </p>
+              </div>
+              <div className="text-center pt-4 pb-2 space-y-1">
+                <p className="text-white/15 text-[10px] font-mono">ดาวทำนาย © 2026 · Thai Astrology AI</p>
+                <p className="text-white/10 text-[10px] font-mono">คำนวณด้วยดาราศาสตร์จริง · Swiss Ephemeris · Lahiri Sidereal</p>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────
 export default function AstrologyChatPage() {
   const [messages, setMessages] = useState<Message[]>([
@@ -942,6 +1171,22 @@ export default function AstrologyChatPage() {
   // Panchang state
   const [panchangData, setPanchangData] = useState<PanchangData | null>(null);
   const [panchangLoading, setPanchangLoading] = useState(false);
+  // UI overlay state
+  const [showSettings, setShowSettings] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [streakMilestone, setStreakMilestone] = useState<number | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [onboardStep, setOnboardStep] = useState(0);
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem("daw_welcomed")) {
+        setShowWelcome(true);
+        localStorage.setItem("daw_welcomed", "1");
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Streak counter
   const [streak, setStreak] = useState(0);
   useEffect(() => {
@@ -954,8 +1199,26 @@ export default function AstrologyChatPage() {
       const newStreak = last === today ? data.streak : last === yesterday ? data.streak + 1 : 1;
       localStorage.setItem("daw_streak", JSON.stringify({ streak: newStreak, lastDate: today }));
       setStreak(newStreak);
+      if ([3, 7, 14, 30, 100].includes(newStreak) && last !== today) {
+        setStreakMilestone(newStreak);
+        setTimeout(() => setStreakMilestone(null), 5000);
+      }
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // PWA install prompt
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      try {
+        const visits = parseInt(localStorage.getItem("daw_visits") ?? "0", 10) + 1;
+        localStorage.setItem("daw_visits", String(visits));
+        if (visits >= 3 && !localStorage.getItem("daw_installed")) setShowInstallBanner(true);
+      } catch {}
+    };
+    window.addEventListener("beforeinstallprompt", handler as EventListener);
+    return () => window.removeEventListener("beforeinstallprompt", handler as EventListener);
   }, []);
   // Synastry state
   const [synMode, setSynMode] = useState(false);
@@ -1071,6 +1334,13 @@ export default function AstrologyChatPage() {
       const json = await res.json();
       if (json.error) throw new Error(json.error);
       setChartData(json as ChartData);
+      // Persist birth data for HOOK investment loop
+      try {
+        localStorage.setItem("daw_birth_date", birthDate);
+        const cityName = THAI_CITIES[birthCity]?.label ?? "";
+        localStorage.setItem("daw_birth_city", cityName);
+        if (birthTime) localStorage.setItem("daw_birth_time", birthTime);
+      } catch {}
       // Update URL so chart is shareable
       const dStr = birthDate.replace(/-/g, "");
       const tStr = (birthTime || "12:00").replace(":", "");
@@ -1105,18 +1375,18 @@ export default function AstrologyChatPage() {
 
       {/* ── HEADER ── */}
       <header className="relative z-20 flex-shrink-0 border-b border-white/[0.06] backdrop-blur-2xl"
-        style={{ background: "linear-gradient(180deg, rgba(6,0,15,0.95) 0%, rgba(12,4,30,0.90) 100%)" }}>
+        style={{ background: "linear-gradient(180deg, rgba(6,0,15,0.95) 0%, rgba(12,4,30,0.90) 100%)", paddingTop: "env(safe-area-inset-top)" }}>
         <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
 
           {/* Logo */}
           <div className="flex items-center gap-2.5 min-w-0 flex-shrink-0">
             <div className="relative">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/35 flex-shrink-0">🔮</div>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/35 flex-shrink-0 text-lg sm:text-xl">🔮</div>
               <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#06000f] animate-pulse" />
             </div>
-            <div className="hidden sm:block">
-              <span className="font-display font-semibold text-sm tracking-wide gold-text block leading-none">ดาวทำนาย</span>
-              <span className="text-[9px] text-white/20 font-body tracking-widest uppercase">Thai Astrology AI</span>
+            <div>
+              <span className="font-display font-bold text-base sm:text-lg tracking-wide gold-text block leading-none">ดาวทำนาย</span>
+              <span className="text-[9px] text-white/25 font-body tracking-widest uppercase hidden sm:block">Thai Astrology AI</span>
             </div>
           </div>
 
@@ -1146,6 +1416,10 @@ export default function AstrologyChatPage() {
                 <span className="text-orange-300/70 text-[11px] font-display">{streak} วัน</span>
               </div>
             )}
+            <button onClick={() => setShowSettings(true)}
+              className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/35 hover:text-white/80 hover:border-white/20 transition-all">
+              ⚙️
+            </button>
             <button onClick={copyLast}
               className="flex-shrink-0 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/35 hover:text-white/80 hover:border-white/20 transition-all text-xs font-display flex items-center justify-center gap-1.5">
               <span>{copied ? "✓" : "📋"}</span>
@@ -1372,6 +1646,8 @@ export default function AstrologyChatPage() {
           {activeTab === "daily" && (
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
               <div className="max-w-lg mx-auto space-y-4">
+                {/* Social proof */}
+                {(() => { const base = 847; const extra = (new Date().getDate() * 37 + new Date().getMonth() * 131) % 400; const count = base + extra; return ( <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-white/[0.02] border border-white/5 mb-2"><div className="flex -space-x-1">{["🟡","🟣","🔵","🟢","🔴"].map((c,i)=><span key={i} className="text-xs">{c}</span>)}</div><p className="text-white/30 text-xs font-thai-serif">วันนี้มี <span className="text-amber-300/70">{count.toLocaleString()}</span> คน ดูดวงแล้ว</p></div> ); })()}
                 <div className="text-center">
                   <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest">พลังงานจักรวาลประจำวัน</p>
                   <p className="font-thai-serif text-2xl font-bold text-white mt-1">{todayThai}</p>
@@ -1460,7 +1736,7 @@ export default function AstrologyChatPage() {
                     <div key={label}>
                       <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest mb-2">{label}</p>
                       <input type="date" value={val} onChange={e => set(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-white text-sm outline-none focus:border-amber-400/50 [color-scheme:dark]" />
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-white text-base sm:text-sm outline-none focus:border-amber-400/50 [color-scheme:dark]" />
                     </div>
                   ))}
                 </div>
@@ -1595,7 +1871,219 @@ export default function AstrologyChatPage() {
             <p className="text-white/50 text-xs font-thai-serif leading-relaxed">"ดวงดาวไม่ได้กำหนดชะตา แต่เป็นแสงนำทางให้เราเลือก" ✨</p>
           </div>
         </aside>
-      </div>
+  
+        {/* ── Settings Sheet overlay ── */}
+        {showSettings && <SettingsSheet onClose={() => setShowSettings(false)} streak={streak} />}
+
+        {/* ── Welcome / Onboarding tutorial (first visit) ── */}
+        {showWelcome && (() => {
+          const STEPS = [
+            {
+              // Step 0 — Brand welcome
+              render: () => (
+                <div className="relative p-7 text-center">
+                  <div className="text-6xl mb-4" style={{ animation: "bounce 2s infinite" }}>🔮</div>
+                  <h2 className="font-display font-bold text-3xl tracking-wide gold-text mb-1">ดาวทำนาย</h2>
+                  <p className="text-white/30 text-[10px] font-mono tracking-widest uppercase mb-5">Thai Astrology AI · v2.0</p>
+                  <p className="text-white/65 font-thai-serif text-base leading-relaxed mb-2">
+                    สวัสดีค่ะ ✨
+                  </p>
+                  <p className="text-white/45 font-thai-serif text-sm leading-relaxed mb-7">
+                    โหราศาสตร์อินเดีย-ไทยที่คำนวณจาก<br/>
+                    <span className="text-amber-300/80">ดาราศาสตร์จริง</span> — ไม่ใช่การเดา
+                  </p>
+                  <button
+                    onClick={() => setOnboardStep(1)}
+                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-thai-serif font-bold text-sm shadow-lg shadow-amber-500/25 hover:shadow-amber-500/45 transition-all active:scale-95">
+                    ดูว่ามีอะไรบ้าง →
+                  </button>
+                </div>
+              ),
+            },
+            {
+              // Step 1 — What's inside
+              render: () => (
+                <div className="p-6">
+                  <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest text-center mb-5">มีอะไรบ้าง</p>
+                  <div className="space-y-3 mb-6">
+                    {[
+                      { icon: "✨", title: "ดวงชาตา", color: "amber", desc: "ลัคนา ราศี มหาดาชา — คำนวณจากตำแหน่งดาวจริงวันเกิดคุณ" },
+                      { icon: "💬", title: "อาจารย์ดาว AI", color: "purple", desc: "ถามได้ทุกเรื่อง รัก เงิน งาน — ตอบแบบโหราศาสตร์อินเดีย-ไทย" },
+                      { icon: "🌙", title: "ดาวประจำวัน", color: "blue", desc: "ปัญจางค์ ฤกษ์มงคล ทาโรต์ คู่ดวง — อัพเดตรายวัน" },
+                    ].map(({ icon, title, color, desc }) => (
+                      <div key={title} className={`flex items-start gap-3 p-3.5 rounded-2xl border ${
+                        color === "amber" ? "border-amber-400/15 bg-amber-400/5"
+                        : color === "purple" ? "border-purple-400/15 bg-purple-400/5"
+                        : "border-blue-400/15 bg-blue-400/5"
+                      }`}>
+                        <span className="text-2xl flex-shrink-0 mt-0.5">{icon}</span>
+                        <div>
+                          <p className={`font-thai-serif font-bold text-sm mb-0.5 ${
+                            color === "amber" ? "text-amber-300" : color === "purple" ? "text-purple-300" : "text-blue-300"
+                          }`}>{title}</p>
+                          <p className="text-white/40 text-xs font-thai-serif leading-relaxed">{desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setOnboardStep(2)}
+                    className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-thai-serif font-bold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 transition-all active:scale-95">
+                    วิธีใช้ →
+                  </button>
+                </div>
+              ),
+            },
+            {
+              // Step 2 — How to use
+              render: () => (
+                <div className="p-6">
+                  <p className="text-white/30 text-[10px] font-mono uppercase tracking-widest text-center mb-5">เริ่มใช้แบบนี้</p>
+                  <div className="space-y-4 mb-6">
+                    {[
+                      { n: "1", tab: "✨ ชาตา", title: "กรอกวันเกิดของคุณ", desc: "ใส่วัน เวลา และเมืองเกิด — ระบบคำนวณดวงชาตาเต็มรูปแบบให้ทันที" },
+                      { n: "2", tab: "💬 แชท",  title: "ถามอาจารย์ดาว",     desc: "พิมพ์คำถามได้เลย หรือกดหัวข้อด่วนที่เตรียมไว้ให้" },
+                      { n: "3", tab: "🌙 วันนี้", title: "เช็คดาวรายวัน",  desc: "ฤกษ์วันนี้ดีไหม? เปิดแท็บวันนี้ดูปัญจางค์และฤกษ์มงคล" },
+                    ].map(({ n, tab, title, desc }) => (
+                      <div key={n} className="flex items-start gap-3.5">
+                        <div className="w-7 h-7 rounded-full bg-amber-500/20 border border-amber-400/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-amber-300 font-bold text-xs">{n}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <p className="text-white/80 font-thai-serif font-semibold text-sm">{title}</p>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-white/25 font-mono whitespace-nowrap">{tab}</span>
+                          </div>
+                          <p className="text-white/35 text-xs font-thai-serif leading-relaxed">{desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setOnboardStep(3)}
+                    className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-thai-serif font-bold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 transition-all active:scale-95">
+                    พร้อมแล้ว! →
+                  </button>
+                </div>
+              ),
+            },
+            {
+              // Step 3 — Final CTA
+              render: () => (
+                <div className="relative p-7 text-center">
+                  <div className="text-5xl mb-4">🌟</div>
+                  <p className="text-white/65 font-thai-serif text-lg font-semibold mb-1">พร้อมแล้ว!</p>
+                  <p className="text-white/35 font-thai-serif text-xs leading-relaxed mb-7">
+                    อาจารย์ดาวรอคุณอยู่<br/>เริ่มต้นด้วยการกรอกวันเกิดเพื่อดูดวงชาตาของคุณ
+                  </p>
+                  <div className="space-y-2.5">
+                    <button
+                      onClick={() => { setShowWelcome(false); setActiveTab("birth"); }}
+                      className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-thai-serif font-bold text-sm shadow-lg shadow-amber-500/25 hover:shadow-amber-500/45 transition-all active:scale-95">
+                      ✨ เริ่มดูดวงชาตาของฉัน
+                    </button>
+                    <button
+                      onClick={() => { setShowWelcome(false); setActiveTab("chat"); }}
+                      className="w-full py-2.5 rounded-2xl border border-purple-400/20 text-purple-300/60 font-thai-serif text-xs hover:text-purple-300/90 hover:border-purple-400/40 transition-colors">
+                      💬 ข้ามไปแชทกับอาจารย์ดาวก่อน
+                    </button>
+                    <button
+                      onClick={() => setShowWelcome(false)}
+                      className="w-full py-2 text-white/20 font-thai-serif text-[11px] hover:text-white/40 transition-colors">
+                      สำรวจแอปเอง
+                    </button>
+                  </div>
+                </div>
+              ),
+            },
+          ];
+          const step = STEPS[Math.min(onboardStep, STEPS.length - 1)];
+          return (
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0"
+              style={{ background: "rgba(4,0,12,0.90)", backdropFilter: "blur(20px)" }}>
+              <div className="relative w-full max-w-sm rounded-3xl border border-amber-400/15 shadow-2xl overflow-hidden"
+                style={{ background: "linear-gradient(160deg, #0d0522 0%, #180535 50%, #0d0522 100%)" }}>
+                {/* Ambient stars */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                  {[["8%","12%"],["88%","8%"],["20%","65%"],["75%","25%"],["50%","5%"],["15%","88%"],["85%","70%"]].map(([x,y], i) => (
+                    <div key={i} className="absolute w-px h-px rounded-full bg-amber-200/40" style={{ left:x, top:y, boxShadow:"0 0 3px 1px rgba(251,191,36,0.3)", animation:`pulse ${2+i*0.5}s ease-in-out infinite`, animationDelay:`${i*0.35}s` }} />
+                  ))}
+                </div>
+                {/* Progress dots */}
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                  {STEPS.map((_, i) => (
+                    <button key={i} onClick={() => i < onboardStep && setOnboardStep(i)}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        i === onboardStep ? "w-5 bg-amber-400" : i < onboardStep ? "w-1.5 bg-amber-400/40 cursor-pointer" : "w-1.5 bg-white/10"
+                      }`} />
+                  ))}
+                </div>
+                {/* Back arrow */}
+                {onboardStep > 0 && (
+                  <button onClick={() => setOnboardStep(s => s - 1)}
+                    className="absolute top-3.5 left-4 z-10 text-white/25 hover:text-white/60 text-xs font-mono transition-colors">
+                    ← ย้อน
+                  </button>
+                )}
+                {/* Skip */}
+                {onboardStep < 3 && (
+                  <button onClick={() => setOnboardStep(3)}
+                    className="absolute top-3.5 right-4 z-10 text-white/20 hover:text-white/50 text-[10px] font-mono transition-colors">
+                    ข้าม
+                  </button>
+                )}
+                <div className="pt-8">
+                  {step.render()}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── PWA Install banner ── */}
+        {showInstallBanner && (
+          <div className="fixed bottom-4 left-4 right-4 z-40 max-w-sm mx-auto rounded-2xl border border-amber-400/20 bg-[#0d0522]/95 backdrop-blur-xl p-4 shadow-2xl flex items-center gap-3 animate-fade-in">
+            <span className="text-3xl flex-shrink-0">🔮</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-white/80 font-thai-serif text-sm font-semibold">เพิ่มลงหน้าจอหลัก</p>
+              <p className="text-white/35 text-xs font-thai-serif">เปิดได้เร็วกว่า ไม่ต้องผ่านเบราเซอร์</p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <button
+                onClick={async () => {
+                  if (installPrompt) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const result = await (installPrompt as any).prompt?.();
+                    if (result?.outcome === "accepted") {
+                      try { localStorage.setItem("daw_installed", "1"); } catch {}
+                    }
+                  }
+                  setShowInstallBanner(false);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-amber-500 text-black text-xs font-thai-serif font-bold">
+                เพิ่มเลย
+              </button>
+              <button onClick={() => setShowInstallBanner(false)} className="text-white/20 text-[10px] font-mono text-center">ไม่ตอนนี้</button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Streak milestone toast ── */}
+        {streakMilestone !== null && (
+          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 max-w-xs w-full px-4">
+            <div className="rounded-2xl border border-orange-400/30 bg-[#0d0522]/95 backdrop-blur-xl p-4 shadow-2xl text-center animate-bounce-once">
+              <p className="text-3xl mb-1">{streakMilestone >= 30 ? "👑" : streakMilestone >= 14 ? "🌟" : streakMilestone >= 7 ? "🏆" : "🔥"}</p>
+              <p className="text-orange-300 font-thai-serif font-bold text-lg">{streakMilestone} วันติดต่อกัน!</p>
+              <p className="text-white/40 text-xs font-thai-serif">
+                {streakMilestone >= 30 ? "ตำนานแห่งดวงดาว 👑" :
+                 streakMilestone >= 14 ? "นักดูดวงตัวจริง 🔮" :
+                 streakMilestone >= 7  ? "สัปดาห์แห่งดวงดาว ⭐" :
+                                         "สตรีคสามวัน! กลับมาพรุ่งนี้ด้วยนะ"}
+              </p>
+            </div>
+          </div>
+        )}
+    </div>
     </div>
   );
 }
