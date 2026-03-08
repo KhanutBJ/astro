@@ -25,12 +25,13 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Prompt — modern geometric Thai; Kanit — contemporary Thai body; Playfair Display — display accent */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@300;400;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Kanit:ital,wght@0,200;0,300;0,400;0,500;0,600;1,300;1,400&family=Playfair+Display:wght@400;600;700&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="h-full overflow-hidden bg-[#080014]">{children}</body>
+      <body className="h-full overflow-hidden bg-[#06000f]">{children}</body>
     </html>
   );
 }

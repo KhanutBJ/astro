@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import BirthChartView, { type ChartData } from "../components/BirthChartView";
+import MarkdownRenderer from "../components/MarkdownRenderer";
 
 const THAI_CITIES = [
   { label: "กรุงเทพฯ",    lat: 13.7563,  lon: 100.5018 },
@@ -187,12 +188,32 @@ function TypingIndicator() {
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
   return (
-    <div className={`flex items-end gap-2 mb-4 ${isUser ? "flex-row-reverse" : ""}`}>
-            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm flex-shrink-0 ${isUser ? "bg-gradient-to-br from-violet-500 to-purple-700" : "bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/30"}`}>
+    <div className={`flex items-end gap-2.5 mb-5 animate-fade-in ${isUser ? "flex-row-reverse" : ""}`}>
+      {/* Avatar */}
+      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs flex-shrink-0 ${
+        isUser
+          ? "bg-gradient-to-br from-violet-500 to-indigo-700 border border-violet-400/25"
+          : "bg-gradient-to-br from-amber-400 to-amber-600 shadow-md shadow-amber-500/25"
+      }`}>
         {isUser ? "✦" : "🔮"}
       </div>
-      <div className={`max-w-[82%] sm:max-w-[72%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${isUser ? "bg-gradient-to-br from-violet-600 to-purple-800 rounded-br-sm text-white border border-violet-500/30" : "bg-white/5 border border-white/10 rounded-bl-sm text-purple-100 backdrop-blur-sm"}`}>
-        <p className="font-thai-serif whitespace-pre-wrap">{message.content}</p>
+
+      {/* Bubble */}
+      <div className={`max-w-[84%] sm:max-w-[74%] rounded-2xl px-4 py-3.5 ${
+        isUser
+          ? "bg-gradient-to-br from-violet-600/85 to-indigo-800/90 rounded-br-sm border border-violet-400/20 shadow-lg shadow-violet-900/30"
+          : "rounded-bl-sm border shadow-lg shadow-black/40 backdrop-blur-sm"
+      }`}
+        style={!isUser ? {
+          background: "linear-gradient(135deg, rgba(10,3,24,0.94) 0%, rgba(20,8,52,0.96) 100%)",
+          borderColor: "rgba(139,92,246,0.18)",
+        } : undefined}
+      >
+        {isUser ? (
+          <p className="font-thai-serif text-sm text-white/90 leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        ) : (
+          <MarkdownRenderer content={message.content} />
+        )}
       </div>
     </div>
   );
@@ -547,30 +568,38 @@ export default function AstrologyChatPage() {
   ];
 
   return (
-    <div className="flex flex-col bg-[#080014]" style={{ height: "100dvh" }}>
+    <div className="flex flex-col bg-[#06000f]" style={{ height: "100dvh" }}>
       <StarField />
 
       {/* ── HEADER ── */}
-      <header className="relative z-20 flex-shrink-0 border-b border-white/5 bg-black/50 backdrop-blur-xl">
+      <header className="relative z-20 flex-shrink-0 border-b border-white/[0.06] backdrop-blur-2xl"
+        style={{ background: "linear-gradient(180deg, rgba(6,0,15,0.95) 0%, rgba(12,4,30,0.90) 100%)" }}>
         <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
+
           {/* Logo */}
-          <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0 flex-shrink-0">
             <div className="relative">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/40 flex-shrink-0">🔮</div>
-              <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#080014] animate-pulse" />
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/35 flex-shrink-0">🔮</div>
+              <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#06000f] animate-pulse" />
             </div>
             <div className="hidden sm:block">
-              <span className="font-thai-serif font-bold text-base gold-text block leading-none">ดาวทำนาย</span>
+              <span className="font-display font-semibold text-sm tracking-wide gold-text block leading-none">ดาวทำนาย</span>
+              <span className="text-[9px] text-white/20 font-body tracking-widest uppercase">Thai Astrology AI</span>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-0.5 sm:gap-1 bg-white/5 rounded-xl p-1 border border-white/5 overflow-x-auto scrollbar-hide flex-1 max-w-md mx-auto">
+          <div className="flex items-center gap-0.5 sm:gap-1 rounded-xl p-1 border border-white/[0.06] overflow-x-auto scrollbar-hide flex-1 max-w-md mx-auto"
+            style={{ background: "rgba(139,92,246,0.06)" }}>
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-shrink-0 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-thai-serif transition-all duration-200 whitespace-nowrap ${activeTab === tab.id ? "bg-gradient-to-r from-amber-500 to-amber-600 text-black font-semibold shadow" : "text-white/40 hover:text-white/70"}`}
+                className={`flex-shrink-0 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-display font-medium transition-all duration-200 whitespace-nowrap tracking-wide ${
+                  activeTab === tab.id
+                    ? "bg-gradient-to-r from-amber-500/90 to-amber-600/90 text-black font-semibold shadow-md shadow-amber-500/20"
+                    : "text-white/35 hover:text-white/65 hover:bg-white/[0.04]"
+                }`}
               >
                 {tab.label}
               </button>
@@ -578,9 +607,10 @@ export default function AstrologyChatPage() {
           </div>
 
           {/* Copy */}
-          <button onClick={copyLast} className="flex-shrink-0 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-lg border border-white/10 bg-white/5 text-white/40 hover:text-white hover:border-white/20 transition-all text-xs font-thai-serif flex items-center justify-center gap-1.5">
+          <button onClick={copyLast}
+            className="flex-shrink-0 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/35 hover:text-white/80 hover:border-white/20 transition-all text-xs font-display flex items-center justify-center gap-1.5">
             <span>{copied ? "✓" : "📋"}</span>
-            <span className="hidden sm:inline">{copied ? "คัดลอกแล้ว" : "คัดลอก"}</span>
+            <span className="hidden sm:inline tracking-wide">{copied ? "คัดลอกแล้ว" : "คัดลอก"}</span>
           </button>
         </div>
       </header>
@@ -631,35 +661,39 @@ export default function AstrologyChatPage() {
               </div>
               {messages.length <= 1 && (
                 <div className="flex-shrink-0 px-3 sm:px-5 py-2">
-                  <p className="text-white/20 text-[10px] uppercase tracking-widest font-mono mb-2">คำถามยอดนิยม</p>
-                  <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
+                  <p className="text-white/18 text-[9px] uppercase tracking-[0.18em] font-display font-light mb-2.5">คำถามยอดนิยม</p>
+                  <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
                     {QUICK_PROMPTS.map(p => (
                       <button key={p.label} onClick={() => sendMessage(p.text)}
-                        className="flex-shrink-0 text-xs px-3.5 py-2 rounded-full border border-white/10 bg-white/[0.04] text-white/60 hover:border-amber-400/40 hover:text-amber-300 hover:bg-amber-400/5 active:scale-95 transition-all font-thai-serif">
+                        className="flex-shrink-0 text-[11px] px-3.5 py-1.5 rounded-full border transition-all active:scale-95 font-display font-light tracking-wide"
+                        style={{ borderColor:"rgba(139,92,246,0.22)", background:"rgba(139,92,246,0.06)", color:"rgba(196,181,253,0.65)" }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor="rgba(251,191,36,0.38)"; (e.currentTarget as HTMLButtonElement).style.color="#fde68a"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor="rgba(139,92,246,0.22)"; (e.currentTarget as HTMLButtonElement).style.color="rgba(196,181,253,0.65)"; }}
+                      >
                         {p.label}
                       </button>
                     ))}
                   </div>
                 </div>
               )}
-              <div className="flex-shrink-0 border-t border-white/5 bg-black/30 backdrop-blur-xl px-3 sm:px-5 pt-3 pb-3"
-                style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+              <div className="flex-shrink-0 border-t border-white/[0.05] backdrop-blur-2xl px-3 sm:px-5 pt-3 pb-3"
+                style={{ background:"linear-gradient(180deg, rgba(6,0,15,0) 0%, rgba(10,3,24,0.96) 100%)", paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
                 <div className="flex items-end gap-2 max-w-3xl mx-auto">
                   <textarea ref={textareaRef} value={input}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                     onInput={e => { const el = e.currentTarget; el.style.height="auto"; el.style.height=Math.min(el.scrollHeight,120)+"px"; }}
                     placeholder="ถามดวงดาวได้เลย... ✨" rows={1} disabled={isLoading}
-                    className="input-glow flex-1 min-w-0 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder-white/20 text-base sm:text-sm font-thai-serif resize-none outline-none transition-all focus:border-amber-400/40 focus:bg-white/[0.07] disabled:opacity-50 leading-relaxed"
-                    style={{ maxHeight:"120px" }} />
+                    className="input-glow flex-1 min-w-0 border rounded-2xl px-4 py-3 text-white placeholder-white/20 text-base sm:text-sm font-display font-light resize-none outline-none transition-all focus:border-amber-400/35 disabled:opacity-50 leading-relaxed"
+                    style={{ maxHeight:"120px", background:"rgba(139,92,246,0.07)", borderColor:"rgba(139,92,246,0.22)" }} />
                   <button onClick={() => sendMessage()} disabled={!input.trim() || isLoading}
-                    className="w-11 h-11 flex-shrink-0 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 transition-all hover:scale-105 active:scale-95 disabled:opacity-40 disabled:scale-100">
+                    className="w-11 h-11 flex-shrink-0 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-40 disabled:scale-100">
                     {isLoading
                       ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                       : <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>}
                   </button>
                 </div>
-                <p className="hidden sm:block text-center text-white/15 text-[10px] mt-2 font-mono">Enter ส่ง · Shift+Enter ขึ้นบรรทัดใหม่</p>
+                <p className="hidden sm:block text-center text-white/12 text-[10px] mt-2 font-display font-light tracking-widest">Enter ส่ง · Shift+Enter ขึ้นบรรทัดใหม่</p>
               </div>
             </>
           )}

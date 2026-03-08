@@ -17,22 +17,42 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        thai: ["Sarabun", "sans-serif"],
-        display: ["Playfair Display", "serif"],
+        display: ["Prompt", "sans-serif"],
+        body:    ["Kanit",  "sans-serif"],
+        accent:  ["Playfair Display", "serif"],
+        // legacy alias
+        thai:    ["Prompt", "sans-serif"],
       },
       colors: {
-        cosmic: {
-          900: "#0a0118",
-          800: "#10022a",
-          700: "#1a0435",
-          600: "#2d0a5c",
-          500: "#4a1280",
+        void: {
+          950: "#06000f",
+          900: "#0c041e",
+          800: "#120832",
+          700: "#1c0c48",
+        },
+        amethyst: {
+          300: "#ddd6fe",
+          400: "#c084fc",
+          500: "#8B5CF6",
+          600: "#7C3AED",
+          700: "#6D28D9",
         },
         gold: {
           300: "#fde68a",
           400: "#fbbf24",
           500: "#f59e0b",
           600: "#d97706",
+        },
+        rose: {
+          DEFAULT: "#E879A0",
+        },
+        // legacy
+        cosmic: {
+          900: "#06000f",
+          800: "#0c041e",
+          700: "#120832",
+          600: "#1c0c48",
+          500: "#4a1280",
         },
         mystic: {
           100: "#e9d5ff",
